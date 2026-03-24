@@ -829,12 +829,12 @@
 
         o.type = 'sine'; o.frequency.value = freq;
         filter.type = 'lowpass'; filter.frequency.value = 500;
-        g.gain.setValueAtTime(0.03, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.06, audioCtx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
 
         delay.delayTime.value = 0.4;
         feedback.gain.value = 0.25;
-        delayGain.gain.value = 0.02;
+        delayGain.gain.value = 0.04;
 
         o.connect(filter);
         filter.connect(g);
