@@ -524,71 +524,65 @@
       });
     }
 
-    // --- Music engine: OP-1 vibes, 5 tracks, verse/chorus + wildcard layer ---
+    // --- Music engine: 128 BPM, OP-1 tape-style progression ---
     let musicNodes = [];
     let lastSongIndex = -1;
+    const BPM = 128;
+    const BEAT = 60000 / BPM; // ~469ms per beat
+    const STEP = BEAT / 2;    // 8th notes ~234ms
 
-    // Each song: bass, lead melody, pad, and a wildcard texture
-    // Wildcard: random glitchy/melodic bits that fire semi-randomly
+    // Song structure: layers build up then break down like recording to tape
+    // Each section = 4 bars (16 beats). Layers: pad, bass, lead, hat, kick, arp, wild
+    const P = 'pad', B = 'bass', L = 'lead', H = 'hat', K = 'kick', A = 'arp', W = 'wild';
+    const structures = [
+      // Slow build → full drop → breakdown → second drop
+      [[P], [P,B], [P,B,L], [P,B,L,H], [P,B,L,H,K,A,W], [P,B,L,H,K,A,W], [P,L,W], [P,B,L,H], [P,B,L,H,K,A,W], [P,B,L,H,K,A,W]],
+      // Quick start → strip → rebuild bigger
+      [[P,B], [P,B,H], [P,B,L,H,K], [P,B,L,H,K,A,W], [P,L], [P,L,W], [P,B,L,H], [P,B,L,H,K], [P,B,L,H,K,A,W], [P,B,L,H,K,A,W]],
+      // Melody first → rhythm joins → full
+      [[P,L], [P,L,W], [P,B,L], [P,B,L,H], [P,B,L,H,K,W], [P,B,L,H,K,A,W], [P,W], [P,B,W], [P,B,L,H,K], [P,B,L,H,K,A,W]],
+    ];
+
     const songs = [
       { name: 'Tape Hiss',
-        tempo: 240,
-        // Wobbly detuned bass, lo-fi
-        bass: [55, 0, 55, 65.4, 0, 55, 73.4, 0], bassType: 'sawtooth',
-        bassCutoff: 350, bassQ: 10, bassDecay: 0.2,
-        // Melody: wistful, lots of space
+        bass: [55, 0, 55, 65.4, 0, 55, 73.4, 0], bassType: 'sawtooth', bassCutoff: 350, bassQ: 10,
         lead: [330, 0, 0, 294, 0, 349, 330, 0, 0, 0, 262, 0, 294, 330, 0, 0],
-        leadType: 'sine', leadCutoff: 1100, leadDecay: 0.55,
-        // Warm tape-saturated pad
+        leadType: 'sine', leadCutoff: 1100, leadDecay: 0.5,
         pad: [110, 165, 220], padType: 'sawtooth', padCutoff: 500, padVol: 0.05,
-        // Chorus arp: bubbly rising
         arp: [330, 392, 440, 523, 494, 440, 392, 330], arpType: 'sine',
-        // Wildcard: random pitched blips like tape artifacts
-        wild: 'blip', wildScale: [262, 294, 330, 392, 440, 523], wildProb: 0.3
+        wild: 'blip', wildScale: [262, 294, 330, 392, 440, 523]
       },
       { name: 'Neon Drive',
-        tempo: 195,
-        bass: [82.4, 82.4, 0, 110, 82.4, 0, 73.4, 98], bassType: 'square',
-        bassCutoff: 450, bassQ: 6, bassDecay: 0.15,
+        bass: [82.4, 82.4, 0, 110, 82.4, 0, 73.4, 98], bassType: 'square', bassCutoff: 450, bassQ: 6,
         lead: [440, 0, 523, 440, 0, 0, 349, 392, 440, 523, 0, 660, 0, 523, 440, 0],
-        leadType: 'sawtooth', leadCutoff: 1600, leadDecay: 0.28,
-        pad: [165, 220, 330, 440], padType: 'sawtooth', padCutoff: 600, padVol: 0.04,
+        leadType: 'sawtooth', leadCutoff: 1600, leadDecay: 0.25,
+        pad: [165, 220, 330], padType: 'sawtooth', padCutoff: 600, padVol: 0.04,
         arp: [660, 784, 880, 1047, 880, 784, 660, 523], arpType: 'square',
-        // Wildcard: glitchy stutter repeats of random notes
-        wild: 'stutter', wildScale: [440, 523, 660, 784], wildProb: 0.25
+        wild: 'stutter', wildScale: [440, 523, 660, 784]
       },
       { name: 'Deep Space',
-        tempo: 290,
-        bass: [41.2, 0, 41.2, 55, 0, 49, 0, 41.2], bassType: 'sawtooth',
-        bassCutoff: 280, bassQ: 12, bassDecay: 0.25,
+        bass: [41.2, 0, 41.2, 55, 0, 49, 0, 41.2], bassType: 'sawtooth', bassCutoff: 280, bassQ: 12,
         lead: [247, 0, 0, 0, 220, 0, 0, 196, 0, 0, 247, 0, 294, 0, 0, 0],
-        leadType: 'triangle', leadCutoff: 800, leadDecay: 0.8,
+        leadType: 'triangle', leadCutoff: 800, leadDecay: 0.75,
         pad: [82.4, 124, 165], padType: 'triangle', padCutoff: 400, padVol: 0.07,
         arp: [330, 370, 440, 494, 440, 370, 330, 247], arpType: 'sine',
-        // Wildcard: random resonant pings like sonar
-        wild: 'ping', wildScale: [494, 587, 659, 784, 880], wildProb: 0.2
+        wild: 'ping', wildScale: [494, 587, 659, 784, 880]
       },
       { name: 'Circuit Breaker',
-        tempo: 210,
-        bass: [110, 110, 0, 98, 82.4, 0, 110, 131], bassType: 'sawtooth',
-        bassCutoff: 550, bassQ: 5, bassDecay: 0.14,
+        bass: [110, 110, 0, 98, 82.4, 0, 110, 131], bassType: 'sawtooth', bassCutoff: 550, bassQ: 5,
         lead: [523, 0, 587, 523, 0, 466, 0, 523, 587, 0, 698, 587, 0, 523, 466, 0],
-        leadType: 'square', leadCutoff: 1400, leadDecay: 0.3,
+        leadType: 'square', leadCutoff: 1400, leadDecay: 0.28,
         pad: [220, 277, 330], padType: 'square', padCutoff: 650, padVol: 0.035,
         arp: [523, 587, 698, 784, 698, 587, 523, 466], arpType: 'sawtooth',
-        // Wildcard: bitcrushed noise bursts
-        wild: 'crunch', wildScale: [200, 300, 400, 500, 600], wildProb: 0.35
+        wild: 'crunch', wildScale: [200, 300, 400, 500, 600]
       },
       { name: 'Morning Synth',
-        tempo: 270,
-        bass: [65.4, 0, 65.4, 82.4, 73.4, 0, 65.4, 0], bassType: 'triangle',
-        bassCutoff: 320, bassQ: 5, bassDecay: 0.22,
+        bass: [65.4, 0, 65.4, 82.4, 73.4, 0, 65.4, 0], bassType: 'triangle', bassCutoff: 320, bassQ: 5,
         lead: [523, 0, 587, 0, 659, 587, 0, 523, 0, 494, 0, 523, 587, 659, 0, 0],
-        leadType: 'sine', leadCutoff: 950, leadDecay: 0.6,
+        leadType: 'sine', leadCutoff: 950, leadDecay: 0.55,
         pad: [131, 196, 262, 392], padType: 'sine', padCutoff: 500, padVol: 0.06,
         arp: [523, 659, 784, 880, 784, 659, 523, 440], arpType: 'triangle',
-        // Wildcard: gentle random chime harmonics
-        wild: 'chime', wildScale: [1047, 1175, 1319, 1397, 1568], wildProb: 0.2
+        wild: 'chime', wildScale: [1047, 1175, 1319, 1397, 1568]
       }
     ];
 
@@ -603,232 +597,214 @@
       if (!audioCtx || musicPlaying) return;
       musicPlaying = true;
       const s = pickSong();
-      const sectionLen = 16;
-      let gStep = 0;
-      const chorus = () => (Math.floor(gStep / sectionLen) % 2) === 1;
+      const struct = structures[Math.floor(Math.random() * structures.length)];
+      const beatsPerSection = 16;
+      let beat = 0;
 
-      // --- Layer 1: Bass ---
-      const bassFilter = audioCtx.createBiquadFilter();
-      bassFilter.type = 'lowpass';
-      bassFilter.frequency.value = s.bassCutoff;
-      bassFilter.Q.value = s.bassQ;
-      bassFilter.connect(musicGain);
-      let bStep = 0, lastSec = -1;
-      function tickBass() {
-        if (!musicPlaying) return;
-        const ch = chorus();
-        const sec = Math.floor(gStep / sectionLen);
-        if (sec !== lastSec) {
-          lastSec = sec;
-          bassFilter.frequency.setTargetAtTime(ch ? s.bassCutoff + 200 : s.bassCutoff, audioCtx.currentTime, 0.4);
-          padFilter.frequency.setTargetAtTime(ch ? s.padCutoff + 250 : s.padCutoff, audioCtx.currentTime, 0.4);
-          padGains.forEach(g => g.gain.setTargetAtTime(ch ? s.padVol * 1.5 : s.padVol, audioCtx.currentTime, 0.4));
-        }
-        const freq = s.bass[bStep % s.bass.length];
-        if (freq > 0) {
-          const o = audioCtx.createOscillator();
-          const e = audioCtx.createGain();
-          o.type = s.bassType;
-          o.frequency.value = freq;
-          o.detune.value = Math.sin(gStep * 0.2) * 8; // subtle wobble
-          e.gain.setValueAtTime(ch ? 0.38 : 0.32, audioCtx.currentTime);
-          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.bassDecay);
-          o.connect(e); e.connect(bassFilter);
-          o.start(); o.stop(audioCtx.currentTime + s.bassDecay + 0.02);
-        }
-        bStep++; gStep++;
-        musicNodes.push(setTimeout(tickBass, s.tempo));
+      function getSection() {
+        const idx = Math.floor(beat / beatsPerSection);
+        return struct[Math.min(idx, struct.length - 1)];
+      }
+      function has(layer) { return getSection().includes(layer); }
+      // How far through the song (0-1) for filter evolution
+      function progress() {
+        const totalBeats = struct.length * beatsPerSection;
+        return Math.min(beat / totalBeats, 1);
       }
 
-      // --- Layer 2: Lead melody ---
-      let lStep = 0;
-      function tickLead() {
-        if (!musicPlaying) return;
-        const freq = s.lead[lStep % s.lead.length];
-        if (freq > 0) {
-          const ch = chorus();
-          const o = audioCtx.createOscillator();
-          const e = audioCtx.createGain();
-          const f = audioCtx.createBiquadFilter();
-          o.type = s.leadType;
-          o.frequency.value = freq;
-          o.detune.value = Math.random() * 8 - 4;
-          f.type = 'lowpass';
-          f.frequency.value = ch ? s.leadCutoff * 1.4 : s.leadCutoff;
-          f.Q.value = 1.5;
-          const vol = ch ? 0.13 : 0.065;
-          e.gain.setValueAtTime(vol, audioCtx.currentTime);
-          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.leadDecay);
-          o.connect(f); f.connect(e); e.connect(musicGain);
-          o.start(); o.stop(audioCtx.currentTime + s.leadDecay + 0.05);
-        }
-        lStep++;
-        musicNodes.push(setTimeout(tickLead, s.tempo));
-      }
-
-      // --- Layer 3: Pad + hats + kick ---
+      // --- Pad (continuous, volume/filter controlled) ---
       const padFilter = audioCtx.createBiquadFilter();
-      padFilter.type = 'lowpass';
-      padFilter.frequency.value = s.padCutoff;
-      padFilter.Q.value = 2;
+      padFilter.type = 'lowpass'; padFilter.frequency.value = 200; padFilter.Q.value = 2;
       padFilter.connect(musicGain);
       const padGains = [];
       s.pad.forEach(freq => {
         const o = audioCtx.createOscillator();
-        o.type = s.padType;
-        o.frequency.value = freq;
+        o.type = s.padType; o.frequency.value = freq;
         o.detune.value = Math.random() * 12 - 6;
-        const g = audioCtx.createGain();
-        g.gain.value = s.padVol;
-        o.connect(g); g.connect(padFilter);
-        o.start(); padGains.push(g);
+        const g = audioCtx.createGain(); g.gain.value = 0;
+        o.connect(g); g.connect(padFilter); o.start();
+        padGains.push(g);
         musicNodes.push({ stop: () => {
-          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-          o.stop(audioCtx.currentTime + 0.3);
+          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+          o.stop(audioCtx.currentTime + 0.2);
         }});
       });
 
-      // Hats
-      let hStep = 0;
-      function tickHat() {
-        if (!musicPlaying) return;
-        const ch = chorus();
-        // Swing: slight timing variation
-        const swing = hStep % 2 === 1 ? s.tempo * 0.04 : 0;
-        const accent = hStep % 4 === 0 ? 0.11 : (hStep % 2 === 0 ? 0.06 : 0.035);
-        const vol = ch ? accent * 1.3 : accent;
-        const len = 0.035;
-        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-        const src = audioCtx.createBufferSource(); src.buffer = buf;
-        const e = audioCtx.createGain();
-        e.gain.setValueAtTime(vol, audioCtx.currentTime);
-        e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
-        const hp = audioCtx.createBiquadFilter();
-        hp.type = 'highpass'; hp.frequency.value = ch ? 7000 : 9000;
-        src.connect(hp); hp.connect(e); e.connect(musicGain);
-        src.start(); src.stop(audioCtx.currentTime + len + 0.01);
-        hStep++;
-        const interval = ch ? s.tempo * 0.25 : s.tempo * 0.5;
-        musicNodes.push(setTimeout(tickHat, interval + swing));
-      }
+      // --- Master clock: one tick per beat ---
+      let bStep = 0, lStep = 0, aStep = 0;
+      let lastSectionIdx = -1;
 
-      // Kick (chorus)
-      function tickKick() {
+      function tick() {
         if (!musicPlaying) return;
-        if (chorus()) {
+        const secIdx = Math.floor(beat / beatsPerSection);
+        const p = progress();
+
+        // Section change: sweep pad filter/volume
+        if (secIdx !== lastSectionIdx) {
+          lastSectionIdx = secIdx;
+          const padOn = has(P);
+          const layers = getSection().length;
+          const cutoff = padOn ? s.padCutoff + p * 300 : 200;
+          const vol = padOn ? s.padVol * (0.8 + layers * 0.1) : 0;
+          padFilter.frequency.setTargetAtTime(cutoff, audioCtx.currentTime, 0.6);
+          padGains.forEach(g => g.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.5));
+        }
+
+        // Bass
+        if (has(B)) {
+          const freq = s.bass[bStep % s.bass.length];
+          if (freq > 0) {
+            const o = audioCtx.createOscillator();
+            const e = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            o.type = s.bassType; o.frequency.value = freq;
+            o.detune.value = Math.sin(beat * 0.15) * 8;
+            f.type = 'lowpass'; f.frequency.value = s.bassCutoff + p * 200; f.Q.value = s.bassQ;
+            e.gain.setValueAtTime(0.32 + p * 0.06, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+            o.connect(f); f.connect(e); e.connect(musicGain);
+            o.start(); o.stop(audioCtx.currentTime + 0.2);
+          }
+          bStep++;
+        }
+
+        // Lead
+        if (has(L)) {
+          const freq = s.lead[lStep % s.lead.length];
+          if (freq > 0) {
+            const o = audioCtx.createOscillator();
+            const e = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            o.type = s.leadType; o.frequency.value = freq;
+            o.detune.value = Math.random() * 8 - 4;
+            f.type = 'lowpass';
+            f.frequency.value = s.leadCutoff * (0.7 + p * 0.6);
+            f.Q.value = 1.5;
+            e.gain.setValueAtTime(0.06 + p * 0.06, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.leadDecay);
+            o.connect(f); f.connect(e); e.connect(musicGain);
+            o.start(); o.stop(audioCtx.currentTime + s.leadDecay + 0.05);
+          }
+          lStep++;
+        }
+
+        // Kick
+        if (has(K)) {
           const o = audioCtx.createOscillator();
           const e = audioCtx.createGain();
           o.type = 'sine';
-          o.frequency.setValueAtTime(140, audioCtx.currentTime);
-          o.frequency.exponentialRampToValueAtTime(28, audioCtx.currentTime + 0.1);
+          o.frequency.setValueAtTime(150, audioCtx.currentTime);
+          o.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.1);
           e.gain.setValueAtTime(0.28, audioCtx.currentTime);
           e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.14);
           o.connect(e); e.connect(musicGain);
           o.start(); o.stop(audioCtx.currentTime + 0.15);
         }
-        musicNodes.push(setTimeout(tickKick, s.tempo));
+
+        beat++;
+        musicNodes.push(setTimeout(tick, BEAT));
       }
 
-      // Chorus arp
-      let aStep = 0;
+      // --- Hats: run on 8th notes, only when H active ---
+      let hStep = 0;
+      function tickHat() {
+        if (!musicPlaying) return;
+        if (has(H)) {
+          const swing = hStep % 2 === 1 ? STEP * 0.06 : 0;
+          const layers = getSection().length;
+          const accent = hStep % 4 === 0 ? 0.10 : (hStep % 2 === 0 ? 0.055 : 0.03);
+          const vol = accent * (0.8 + layers * 0.08);
+          const len = 0.03;
+          const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+          const src = audioCtx.createBufferSource(); src.buffer = buf;
+          const e = audioCtx.createGain();
+          e.gain.setValueAtTime(vol, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+          const hp = audioCtx.createBiquadFilter();
+          hp.type = 'highpass'; hp.frequency.value = 8000;
+          src.connect(hp); hp.connect(e); e.connect(musicGain);
+          src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+        }
+        hStep++;
+        musicNodes.push(setTimeout(tickHat, STEP));
+      }
+
+      // --- Arp: 16th notes during arp sections ---
       function tickArp() {
         if (!musicPlaying) return;
-        if (chorus()) {
+        if (has(A)) {
           const freq = s.arp[aStep % s.arp.length];
           const o = audioCtx.createOscillator();
           const e = audioCtx.createGain();
           const f = audioCtx.createBiquadFilter();
-          o.type = s.arpType;
-          o.frequency.value = freq;
-          f.type = 'lowpass'; f.frequency.value = 1800; f.Q.value = 3;
-          e.gain.setValueAtTime(0.09, audioCtx.currentTime);
-          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.tempo / 1300);
+          o.type = s.arpType; o.frequency.value = freq;
+          f.type = 'lowpass'; f.frequency.value = 1400 + progress() * 600; f.Q.value = 3;
+          e.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + STEP / 1100);
           o.connect(f); f.connect(e); e.connect(musicGain);
-          o.start(); o.stop(audioCtx.currentTime + s.tempo / 1000);
+          o.start(); o.stop(audioCtx.currentTime + STEP / 900);
           aStep++;
         }
-        musicNodes.push(setTimeout(tickArp, s.tempo / 2));
+        musicNodes.push(setTimeout(tickArp, STEP / 2));
       }
 
-      // --- Layer 4: Wildcard / texture ---
+      // --- Wildcard: semi-random, only when W active ---
       function tickWild() {
         if (!musicPlaying) return;
-        // Semi-random timing: fires at random intervals
-        const next = s.tempo * (0.5 + Math.random() * 2);
-        if (Math.random() < s.wildProb) {
+        const next = BEAT * (0.5 + Math.random() * 1.5);
+        if (has(W) && Math.random() < 0.3) {
           const freq = s.wildScale[Math.floor(Math.random() * s.wildScale.length)];
-          const ch = chorus();
-          const vol = ch ? 0.09 : 0.05;
-
+          const vol = 0.05 + progress() * 0.04;
           if (s.wild === 'blip') {
-            // Short pitched blip with random detune — tape artifact feel
-            const o = audioCtx.createOscillator();
-            const e = audioCtx.createGain();
-            o.type = 'sine';
-            o.frequency.value = freq;
+            const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+            o.type = 'sine'; o.frequency.value = freq;
             o.detune.value = Math.random() * 40 - 20;
             e.gain.setValueAtTime(vol, audioCtx.currentTime);
             e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
             o.connect(e); e.connect(musicGain);
             o.start(); o.stop(audioCtx.currentTime + 0.1);
           } else if (s.wild === 'stutter') {
-            // Rapid 3-hit stutter of same note
             for (let i = 0; i < 3; i++) {
               setTimeout(() => {
                 if (!musicPlaying) return;
-                const o = audioCtx.createOscillator();
-                const e = audioCtx.createGain();
-                o.type = 'square';
-                o.frequency.value = freq;
+                const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
                 const f = audioCtx.createBiquadFilter();
+                o.type = 'square'; o.frequency.value = freq;
                 f.type = 'lowpass'; f.frequency.value = 1200;
-                e.gain.setValueAtTime(vol * 0.7, audioCtx.currentTime);
+                e.gain.setValueAtTime(vol * 0.6, audioCtx.currentTime);
                 e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
                 o.connect(f); f.connect(e); e.connect(musicGain);
                 o.start(); o.stop(audioCtx.currentTime + 0.05);
               }, i * 55);
             }
           } else if (s.wild === 'ping') {
-            // High resonant ping — sonar in deep space
-            const o = audioCtx.createOscillator();
-            const e = audioCtx.createGain();
+            const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
             const f = audioCtx.createBiquadFilter();
-            o.type = 'sine';
-            o.frequency.value = freq;
+            o.type = 'sine'; o.frequency.value = freq;
             f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 20;
-            e.gain.setValueAtTime(vol * 0.6, audioCtx.currentTime);
-            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+            e.gain.setValueAtTime(vol * 0.5, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
             o.connect(f); f.connect(e); e.connect(musicGain);
-            o.start(); o.stop(audioCtx.currentTime + 0.55);
+            o.start(); o.stop(audioCtx.currentTime + 0.5);
           } else if (s.wild === 'crunch') {
-            // Short noise burst through bandpass — digital grit
             const len = 0.06;
             const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
             const d = buf.getChannelData(0);
-            // Bitcrushed noise: quantize
-            for (let i = 0; i < d.length; i++) {
-              const raw = Math.random() * 2 - 1;
-              d[i] = Math.round(raw * 4) / 4;
-            }
+            for (let i = 0; i < d.length; i++) d[i] = Math.round((Math.random() * 2 - 1) * 4) / 4;
             const src = audioCtx.createBufferSource(); src.buffer = buf;
-            const e = audioCtx.createGain();
-            const f = audioCtx.createBiquadFilter();
+            const e = audioCtx.createGain(); const f = audioCtx.createBiquadFilter();
             f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 8;
             e.gain.setValueAtTime(vol, audioCtx.currentTime);
             e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
             src.connect(f); f.connect(e); e.connect(musicGain);
             src.start(); src.stop(audioCtx.currentTime + len + 0.01);
           } else if (s.wild === 'chime') {
-            // Gentle harmonic chime — two detuned sines
             [0, 7].forEach(det => {
-              const o = audioCtx.createOscillator();
-              const e = audioCtx.createGain();
-              o.type = 'sine';
-              o.frequency.value = freq;
-              o.detune.value = det;
-              e.gain.setValueAtTime(vol * 0.5, audioCtx.currentTime);
+              const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+              o.type = 'sine'; o.frequency.value = freq; o.detune.value = det;
+              e.gain.setValueAtTime(vol * 0.4, audioCtx.currentTime);
               e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
               o.connect(e); e.connect(musicGain);
               o.start(); o.stop(audioCtx.currentTime + 0.45);
@@ -838,8 +814,8 @@
         musicNodes.push(setTimeout(tickWild, next));
       }
 
-      // Start all layers
-      tickBass(); tickLead(); tickHat(); tickKick(); tickArp(); tickWild();
+      // Start all clocks
+      tick(); tickHat(); tickArp(); tickWild();
     }
 
     function stopMusic() {
