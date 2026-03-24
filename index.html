@@ -349,6 +349,7 @@
     <div id="name-panel">
       <h2>GAME OVER</h2>
       <div class="your-score">You scored <b id="name-score">0</b> points!</div>
+      <div id="name-placement" style="font-size:13px;color:#94a3b8;margin-bottom:8px;"></div>
       <div id="name-form">
         <label for="name-input" style="font-size:13px;color:#64748b;display:block;margin-bottom:6px">Enter your name for the leaderboard:</label>
         <input type="text" id="name-input" maxlength="12" placeholder="Your name..." />
@@ -362,7 +363,6 @@
     <div id="game-over-panel">
       <h2>LEADERBOARD</h2>
       <div class="your-score"><b id="final-name">You</b> scored <b id="final-score">0</b> points!</div>
-      <div id="placement" style="font-size:13px;color:#94a3b8;margin-bottom:12px;"></div>
       <div id="leaderboard">
         <div class="lb-title">Top Scores</div>
         <div id="lb-entries"></div>
@@ -1477,12 +1477,22 @@
       gameRunning = false;
       pendingScore = score;
 
+      // Calculate placement preview
+      const lb = getLeaderboard();
+      const tempLb = [...lb, { score: pendingScore }].sort((a, b) => b.score - a.score);
+      const place = tempLb.findIndex(e => e.score === pendingScore) + 1;
+      const ordinal = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : place + 'th';
+      document.getElementById('name-placement').textContent = place <= 10 ? `You placed ${ordinal}!` : '';
+
+      // Play placement sound
+      if (place === 1) sfxVictory();
+      else sfxDefeat();
+
       // Show name entry screen
       document.getElementById('name-score').textContent = score;
       const savedName = localStorage.getItem('block_player_name') || '';
       document.getElementById('name-input').value = savedName;
       document.getElementById('name-overlay').classList.add('visible');
-      // Focus the input after a tiny delay so it works
       setTimeout(() => document.getElementById('name-submit-btn').focus(), 100);
     }
 
@@ -1501,21 +1511,12 @@
       lb = lb.slice(0, 10);
       saveLeaderboard(lb);
 
-      // Find placement
-      const place = lb.findIndex(e => e.isPlayer && e.name === playerName && e.score === pendingScore) + 1;
-      const ordinal = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : place + 'th';
-
       // Show leaderboard screen
       document.getElementById('final-name').textContent = playerName;
       document.getElementById('final-score').textContent = pendingScore;
-      document.getElementById('placement').textContent = place <= 10 ? `You placed ${ordinal} on the leaderboard` : '';
       renderLeaderboard(lb, playerName, pendingScore);
       document.getElementById('game-over-overlay').classList.add('visible');
       setTimeout(() => document.getElementById('play-again-btn').focus(), 100);
-
-      // Play placement sound
-      if (place === 1) sfxVictory();
-      else sfxDefeat();
     }
 
     // Submit name on button click
