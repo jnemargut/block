@@ -1085,13 +1085,21 @@
         if (e.y + e.size >= ARENA) { e.y = ARENA - e.size; e.vy = -Math.abs(e.vy); }
       }
 
-      // Update shards
+      // Update shards with wall bouncing
       for (const s of deathAnim.shards) {
-        s.x += s.vx * (0.3 + slowMo * 2);
-        s.y += s.vy * (0.3 + slowMo * 2);
+        const speed = 0.3 + slowMo * 2;
+        s.x += s.vx * speed;
+        s.y += s.vy * speed;
         s.vy += 0.03; // tiny gravity
-        s.rot += s.rotSpeed * (0.3 + slowMo * 2);
+        s.rot += s.rotSpeed * speed;
         s.alpha = Math.max(0, 1 - t * 1.2);
+
+        // Bounce off walls with energy loss
+        const bounce = 0.6;
+        if (s.x < 0) { s.x = 0; s.vx = Math.abs(s.vx) * bounce; s.rotSpeed *= -0.8; }
+        if (s.x + s.w > ARENA) { s.x = ARENA - s.w; s.vx = -Math.abs(s.vx) * bounce; s.rotSpeed *= -0.8; }
+        if (s.y < 0) { s.y = 0; s.vy = Math.abs(s.vy) * bounce; s.rotSpeed *= -0.8; }
+        if (s.y + s.h > ARENA) { s.y = ARENA - s.h; s.vy = -Math.abs(s.vy) * bounce; s.rotSpeed *= -0.8; }
       }
 
       // Flash fades out
