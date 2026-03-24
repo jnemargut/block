@@ -80,13 +80,13 @@
     .impact-burst {
       position: absolute;
       pointer-events: none;
-      width: 80px;
-      height: 80px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(239,68,68,1) 0%, rgba(239,68,68,0.4) 25%, rgba(239,68,68,0) 65%);
-      transform: translate(-50%, -50%) scale(0.4);
+      background: radial-gradient(circle, rgba(239,68,68,0.8) 0%, rgba(239,68,68,0.3) 30%, rgba(239,68,68,0) 70%);
+      transform: translate(-50%, -50%) scale(0.5);
       opacity: 1;
-      transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+      transition: opacity 0.4s ease-out, transform 0.4s ease-out;
     }
     #zoom-lens {
       display: none;
@@ -1008,7 +1008,7 @@
       // Animate out
       requestAnimationFrame(() => {
         el.style.opacity = '0';
-        el.style.transform = 'translate(-50%, -50%) scale(3.5)';
+        el.style.transform = 'translate(-50%, -50%) scale(3)';
       });
       setTimeout(() => el.remove(), 450);
     }
@@ -1019,7 +1019,7 @@
     function spawnWallBounce(side, pos, speed) {
       sfxWallBounce(speed);
       spawnImpactBurst(side, pos);
-      borderGlows[side] = Math.min(1, borderGlows[side] + 0.7 + speed * 0.15);
+      borderGlows[side] = Math.min(1, borderGlows[side] + 0.5 + speed * 0.12);
       wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
       // Spawn small red shards that fly outward past the border
       const count = 3 + Math.floor(Math.random() * 3);
@@ -1468,7 +1468,7 @@
         ctx.save();
         ctx.globalAlpha = f.alpha;
         let grad;
-        const glowSize = 40;
+        const glowSize = 30;
         if (f.side === 'left') {
           grad = ctx.createLinearGradient(0, 0, glowSize, 0);
           grad.addColorStop(0, 'rgba(239,68,68,0.6)');
