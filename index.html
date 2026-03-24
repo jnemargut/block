@@ -123,17 +123,28 @@
     }
 
     /* Toggle switches */
-    #lens-toggle {
-      display: none;
-      align-items: center;
+    .toggle-row {
+      display: flex;
+      gap: 16px;
       justify-content: center;
-      gap: 8px;
+      align-items: center;
       margin-top: 6px;
+    }
+    .toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 13px;
       color: rgba(59,130,246,0.35);
       cursor: pointer;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+    }
+    #lens-toggle {
+      display: none;
+    }
+    @media (pointer: coarse) {
+      #lens-toggle { display: flex; }
     }
     #lens-toggle .switch {
       position: relative;
@@ -395,12 +406,12 @@
       </div>
     </div>
     <div id="instructions">Arrow keys or touch to move</div>
-    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-      <div id="lens-toggle" class="on">
+    <div class="toggle-row">
+      <div id="lens-toggle" class="toggle-btn on">
         <span class="switch"></span>
         <span>Touch preview</span>
       </div>
-      <div id="sound-toggle" class="on" style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(59,130,246,0.35);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;">
+      <div id="sound-toggle" class="toggle-btn on">
         <span class="switch"></span>
         <span>Sound</span>
       </div>
@@ -1126,10 +1137,6 @@
       localStorage.setItem('block_lens', lensEnabled ? 'on' : 'off');
       if (!lensEnabled) lensEl.classList.remove('visible');
     });
-    // Show toggle only on touch devices
-    window.addEventListener('touchstart', function showToggle() {
-      lensToggle.style.display = 'flex';
-    }, { once: true });
 
     // Touch controls — move toward where you touch/hold
     let touchTarget = null; // {x, y} in canvas coordinates, or null
