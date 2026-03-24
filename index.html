@@ -529,17 +529,26 @@
     // Clean square sub bass (not farty saw). Filtered saw pad. Fast hats.
     let musicNodes = [];
     let lastSongIndex = -1;
-    const BPM = 130;
-    const BEAT = 60000 / BPM; // ~462ms
-    const EIGHTH = BEAT / 2;
-    const BUILD_BEATS = 8; // ~3.5 seconds of build before drop
+    let currentBPM = 130;
+    function getBeat() { return 60000 / currentBPM; }
+    function getEighth() { return getBeat() / 2; }
+    const BUILD_BEATS = 8;
+
+    function increaseBPM() {
+      currentBPM += 8; // jump 8 BPM per new block
+    }
 
     const songs = [
-      { bass: [55, 55, 73.4, 55, 82.4, 55, 73.4, 65.4], pad: [110, 164.8, 220, 329.6] },
-      { bass: [82.4, 82.4, 110, 82.4, 73.4, 82.4, 98, 82.4], pad: [164.8, 220, 329.6, 440] },
-      { bass: [55, 73.4, 55, 55, 82.4, 73.4, 55, 65.4], pad: [110, 146.8, 220, 293.7] },
-      { bass: [73.4, 73.4, 55, 82.4, 73.4, 55, 98, 73.4], pad: [146.8, 196, 293.7, 392] },
-      { bass: [55, 55, 55, 73.4, 82.4, 82.4, 65.4, 55], pad: [110, 165, 196, 330] },
+      { bass: [55, 55, 73.4, 55, 82.4, 55, 73.4, 65.4], pad: [110, 164.8, 220, 329.6],
+        acid: [220, 0, 262, 220, 0, 330, 0, 262, 220, 0, 196, 0, 220, 262, 0, 220] },
+      { bass: [82.4, 82.4, 110, 82.4, 73.4, 82.4, 98, 82.4], pad: [164.8, 220, 329.6, 440],
+        acid: [330, 0, 392, 0, 440, 330, 0, 392, 330, 0, 294, 330, 0, 392, 440, 0] },
+      { bass: [55, 73.4, 55, 55, 82.4, 73.4, 55, 65.4], pad: [110, 146.8, 220, 293.7],
+        acid: [220, 262, 0, 294, 0, 220, 262, 0, 330, 0, 294, 262, 0, 220, 0, 262] },
+      { bass: [73.4, 73.4, 55, 82.4, 73.4, 55, 98, 73.4], pad: [146.8, 196, 293.7, 392],
+        acid: [294, 0, 330, 294, 0, 392, 0, 330, 0, 294, 262, 0, 294, 330, 0, 294] },
+      { bass: [55, 55, 55, 73.4, 82.4, 82.4, 65.4, 55], pad: [110, 165, 196, 330],
+        acid: [196, 0, 220, 0, 262, 196, 0, 220, 262, 0, 330, 262, 0, 220, 196, 0] },
     ];
 
     function pickSong() {
@@ -553,6 +562,7 @@
       if (!audioCtx || musicPlaying) return;
       musicPlaying = true;
       const s = pickSong();
+      currentBPM = 130; // reset BPM each game
       let beat = 0;
       let dropped = false;
 
@@ -640,7 +650,7 @@
 
         // Snare roll during build — gets faster as drop approaches
         if (building && beat >= BUILD_BEATS - 4) {
-          const rollSpeed = beat >= BUILD_BEATS - 2 ? EIGHTH / 2 : EIGHTH;
+          const rollSpeed = beat >= BUILD_BEATS - 2 ? getEighth() / 2 : getEighth();
           const rollCount = beat >= BUILD_BEATS - 2 ? 4 : 2;
           for (let i = 0; i < rollCount; i++) {
             setTimeout(() => {
@@ -662,7 +672,7 @@
         }
 
         beat++;
-        musicNodes.push(setTimeout(tick, BEAT));
+        musicNodes.push(setTimeout(tick, getBeat()));
       }
 
       // Hi-hat — 8th notes, always on but quieter during build
@@ -685,11 +695,35 @@
         src.connect(hp); hp.connect(e); e.connect(musicGain);
         src.start(); src.stop(audioCtx.currentTime + len + 0.01);
         hatStep++;
-        musicNodes.push(setTimeout(tickHat, EIGHTH));
+        musicNodes.push(setTimeout(tickHat, getEighth()));
+      }
+
+      // Acid synth — squelchy saw through resonant filter, 8th notes after drop
+      let acidStep = 0;
+      function tickAcid() {
+        if (!musicPlaying) return;
+        if (dropped) {
+          const freq = s.acid[acidStep % s.acid.length];
+          if (freq > 0) {
+            const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            o.type = 'sawtooth'; o.frequency.value = freq;
+            // Squelchy resonant filter that sweeps down per note
+            f.type = 'lowpass'; f.Q.value = 12;
+            f.frequency.setValueAtTime(2000 + Math.random() * 1000, audioCtx.currentTime);
+            f.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.12);
+            e.gain.setValueAtTime(0.13, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.14);
+            o.connect(f); f.connect(e); e.connect(musicGain);
+            o.start(); o.stop(audioCtx.currentTime + 0.16);
+          }
+          acidStep++;
+        }
+        musicNodes.push(setTimeout(tickAcid, getEighth()));
       }
 
       // Start clocks
-      tick(); tickHat();
+      tick(); tickHat(); tickAcid();
     }
 
     function stopMusic() {
@@ -1167,6 +1201,7 @@
             lastEnemyAtScore = score;
             spawnNewEnemy();
             sfxNewEnemy();
+            if (musicPlaying) increaseBPM();
             // Flash warning particles at spawn location
             const newE = pendingSpawns[pendingSpawns.length - 1];
             const spawnX = newE.x + newE.size / 2;
