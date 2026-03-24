@@ -30,13 +30,14 @@
     #score-display span {
       color: #3b82f6;
     }
-    canvas {
+    canvas#game-canvas {
       border: 3px solid #cbd5e1;
       border-radius: 8px;
       background: #f8fafc;
       box-shadow: 0 4px 24px rgba(0,0,0,0.08);
       max-width: calc(100vw - 24px);
       max-height: calc(100vw - 24px);
+      transition: border-color 0.08s, box-shadow 0.08s;
     }
     #zoom-lens {
       display: none;
@@ -930,9 +931,11 @@
     // Wall bounce effects
     let wallFlashes = []; // { side, alpha, pos (along wall) }
     let bounceParticles = []; // particles that fly outside the border
+    let borderGlow = 0; // 0-1, spikes on bounce, fades each frame
 
     function spawnWallBounce(side, pos, speed) {
       sfxWallBounce(speed);
+      borderGlow = Math.min(1, borderGlow + 0.3 + speed * 0.05);
       wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
       // Spawn small red shards that fly outward past the border
       const count = 3 + Math.floor(Math.random() * 3);
@@ -966,6 +969,17 @@
         p.alpha -= 0.03;
         p.rot += 0.1;
         if (p.alpha <= 0) bounceParticles.splice(i, 1);
+      }
+      // Fade and apply border glow
+      borderGlow *= 0.9;
+      if (borderGlow < 0.01) borderGlow = 0;
+      if (borderGlow > 0) {
+        const g = borderGlow;
+        canvas.style.borderColor = `rgba(239, 68, 68, ${g * 0.7})`;
+        canvas.style.boxShadow = `0 0 ${8 + g * 20}px rgba(239, 68, 68, ${g * 0.4}), 0 4px 24px rgba(0,0,0,0.08)`;
+      } else {
+        canvas.style.borderColor = '#cbd5e1';
+        canvas.style.boxShadow = '0 4px 24px rgba(0,0,0,0.08)';
       }
     }
 
