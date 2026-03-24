@@ -879,15 +879,21 @@
 
       // Show name entry screen
       document.getElementById('name-score').textContent = score;
-      document.getElementById('name-input').value = '';
+      const savedName = localStorage.getItem('block_player_name') || '';
+      document.getElementById('name-input').value = savedName;
       document.getElementById('name-overlay').classList.add('visible');
       // Focus the input after a tiny delay so it works
-      setTimeout(() => document.getElementById('name-input').focus(), 100);
+      setTimeout(() => {
+        const inp = document.getElementById('name-input');
+        inp.focus();
+        inp.select();
+      }, 100);
     }
 
     function submitName() {
       let playerName = document.getElementById('name-input').value.trim();
       if (!playerName) playerName = 'Player';
+      localStorage.setItem('block_player_name', playerName);
 
       // Hide name entry
       document.getElementById('name-overlay').classList.remove('visible');
