@@ -472,6 +472,16 @@
     });
     window.addEventListener('keyup', e => { keys[e.key] = false; });
 
+    // Zoom lens (offscreen canvas for sampling)
+    const lensCanvas = document.createElement('canvas');
+    lensCanvas.width = ARENA;
+    lensCanvas.height = ARENA;
+    const lensCtx = lensCanvas.getContext('2d');
+    const LENS_RADIUS = 48;
+    const LENS_ZOOM = 2.8;
+    const LENS_CX = 14 + LENS_RADIUS; // circle center in canvas coords
+    const LENS_CY = 14 + LENS_RADIUS;
+
     // Touch controls — move toward where you touch/hold
     let touchTarget = null; // {x, y} in canvas coordinates, or null
 
@@ -779,6 +789,52 @@
         ctx.moveTo(firstEnemy.x + firstEnemy.size / 2, firstEnemy.y - 10 + pulse);
         ctx.lineTo(firstEnemy.x + firstEnemy.size / 2 - 7, firstEnemy.y - 20 + pulse);
         ctx.lineTo(firstEnemy.x + firstEnemy.size / 2 + 7, firstEnemy.y - 20 + pulse);
+        ctx.fill();
+      }
+
+      // Zoom lens for touch controls — shows magnified area around player
+      if (touchTarget && launched) {
+        // Copy what we've drawn so far to the offscreen canvas
+        lensCtx.clearRect(0, 0, ARENA, ARENA);
+        lensCtx.drawImage(canvas, 0, 0);
+
+        // Source region centered on player
+        const pcx = player.x + player.size / 2;
+        const pcy = player.y + player.size / 2;
+        const srcHalf = LENS_RADIUS / LENS_ZOOM;
+
+        ctx.save();
+
+        // Dim background behind lens for contrast
+        ctx.beginPath();
+        ctx.arc(LENS_CX, LENS_CY, LENS_RADIUS + 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fill();
+
+        // Clip to circle
+        ctx.beginPath();
+        ctx.arc(LENS_CX, LENS_CY, LENS_RADIUS, 0, Math.PI * 2);
+        ctx.clip();
+
+        // Draw zoomed portion from offscreen copy
+        ctx.drawImage(lensCanvas,
+          pcx - srcHalf, pcy - srcHalf, srcHalf * 2, srcHalf * 2,
+          LENS_CX - LENS_RADIUS, LENS_CY - LENS_RADIUS, LENS_RADIUS * 2, LENS_RADIUS * 2
+        );
+
+        ctx.restore();
+
+        // Border ring
+        ctx.beginPath();
+        ctx.arc(LENS_CX, LENS_CY, LENS_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Crosshair dot in center of lens
+        ctx.beginPath();
+        ctx.arc(LENS_CX, LENS_CY, 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.5)';
         ctx.fill();
       }
 
