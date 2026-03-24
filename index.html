@@ -458,6 +458,30 @@
       setTimeout(() => playTone(1760, 'sine', 0.1, sfxGain), 60);
     }
 
+    // Shuffling feet sound — only pre-launch
+    let lastShuffleTime = 0;
+    function sfxShuffle() {
+      if (!audioCtx || !soundEnabled) return;
+      const now = Date.now();
+      if (now - lastShuffleTime < 150) return; // throttle
+      lastShuffleTime = now;
+      const len = 0.04 + Math.random() * 0.03;
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const e = audioCtx.createGain();
+      const vol = 0.03 + Math.random() * 0.02;
+      e.gain.setValueAtTime(vol, audioCtx.currentTime);
+      e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 600 + Math.random() * 400;
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 100 + Math.random() * 100;
+      src.connect(hp); hp.connect(lp); lp.connect(e); e.connect(sfxGain);
+      src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+    }
+
     function sfxWallBounce(intensity) {
       if (!audioCtx) return;
       const freq = 80 + intensity * 30;
@@ -971,6 +995,7 @@
     let launchTime = 0;
     let invincibleUntil = 0; // timestamp when invincibility ends
     let keys = {};
+    let prevPX = 0, prevPY = 0;
     let animFrameId = null;
 
     // Death animation state
@@ -1350,6 +1375,12 @@
       // Keep player in bounds
       player.x = Math.max(0, Math.min(ARENA - player.size, player.x));
       player.y = Math.max(0, Math.min(ARENA - player.size, player.y));
+
+      // Shuffle feet sound when moving pre-launch
+      if (!launched && (player.x !== prevPX || player.y !== prevPY)) {
+        sfxShuffle();
+      }
+      prevPX = player.x; prevPY = player.y;
 
       // Record trails
       playerTrail.push({ x: player.x + player.size / 2, y: player.y + player.size / 2 });
