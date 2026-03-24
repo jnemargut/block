@@ -816,7 +816,7 @@
       if (touchTarget && touchScreen && gameRunning) {
         // Position lens above the touch point
         let lensX = touchScreen.x - LENS_SIZE / 2;
-        let lensY = touchScreen.y - LENS_SIZE - 60; // 60px above finger
+        let lensY = touchScreen.y - LENS_SIZE - 10; // just above finger
         // Keep on screen
         lensX = Math.max(4, Math.min(window.innerWidth - LENS_SIZE - 4, lensX));
         lensY = Math.max(4, lensY);
