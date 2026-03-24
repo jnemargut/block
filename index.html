@@ -188,49 +188,80 @@
       transition: transform 0.2s, background 0.2s;
     }
 
-    /* Game Over Overlay */
-    #game-over-overlay {
+    /* In-board panels — sit on top of the canvas inside canvas-wrapper */
+    .board-panel {
       display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      background: rgba(8,12,21,0.92);
+      border-radius: 8px;
+      padding: 28px 24px;
+      text-align: center;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 100;
+      overflow-y: auto;
     }
-    #game-over-overlay.visible {
-      display: flex;
-    }
-    #game-over-panel {
-      background: #080c15;
-      border-radius: 12px;
-      padding: 28px 32px;
-      border: 2px solid rgba(59,130,246,0.3);
-      box-shadow: 0 0 30px rgba(59,130,246,0.1), 0 12px 40px rgba(0,0,0,0.4);
-      min-width: 260px;
-      max-width: 320px;
-      text-align: center;
-    }
-    #game-over-panel h2 {
-      font-size: 24px;
+    .board-panel.visible { display: flex; }
+    .board-panel h1, .board-panel h2 {
       font-weight: 800;
       color: #fff;
       letter-spacing: 3px;
       text-shadow: 0 0 15px rgba(59,130,246,0.4);
       margin-bottom: 4px;
     }
-    #game-over-panel .your-score {
+    .board-panel h1 { font-size: 36px; letter-spacing: 6px; text-shadow: 0 0 25px rgba(59,130,246,0.6), 0 0 50px rgba(59,130,246,0.2); margin-bottom: 8px; }
+    .board-panel h2 { font-size: 22px; }
+    .board-panel .your-score {
       font-size: 14px;
       color: rgba(255,255,255,0.5);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
-    #game-over-panel .your-score b {
+    .board-panel .your-score b {
       color: #3b82f6;
       text-shadow: 0 0 10px rgba(59,130,246,0.4);
     }
+    .board-panel p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 5px;
+      line-height: 1.5;
+    }
+    .board-panel p b { color: rgba(255,255,255,0.8); }
+    .board-panel .hint {
+      font-size: 11px;
+      color: rgba(59,130,246,0.35);
+      margin-top: 12px;
+      letter-spacing: 1px;
+    }
+    .board-panel button {
+      background: rgba(59,130,246,0.2);
+      color: #3b82f6;
+      border: 1px solid rgba(59,130,246,0.4);
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: all 0.15s;
+      box-shadow: 0 0 12px rgba(59,130,246,0.15);
+      width: 100%;
+      max-width: 220px;
+      margin-top: 14px;
+    }
+    .board-panel button:hover {
+      background: rgba(59,130,246,0.3);
+      box-shadow: 0 0 20px rgba(59,130,246,0.3);
+    }
+
+    /* Leaderboard inside panel */
     #leaderboard {
       text-align: left;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      width: 100%;
+      max-width: 260px;
     }
     #leaderboard .lb-title {
       font-size: 11px;
@@ -243,9 +274,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 14px;
+      font-size: 13px;
       color: rgba(255,255,255,0.5);
-      padding: 5px 0;
+      padding: 4px 0;
       border-bottom: 1px solid rgba(59,130,246,0.08);
     }
     .lb-entry:last-child { border-bottom: none; }
@@ -254,80 +285,12 @@
       font-weight: 700;
       text-shadow: 0 0 8px rgba(59,130,246,0.3);
     }
-    .lb-entry .lb-rank {
-      width: 28px;
-      flex-shrink: 0;
-    }
-    .lb-entry .lb-name {
-      flex: 1;
-    }
-    .lb-entry .lb-score {
-      font-weight: 700;
-      min-width: 30px;
-      text-align: right;
-    }
-    #play-again-btn {
-      background: rgba(59,130,246,0.2);
-      color: #3b82f6;
-      border: 1px solid rgba(59,130,246,0.4);
-      padding: 12px 32px;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      letter-spacing: 1px;
-      transition: all 0.15s;
-      box-shadow: 0 0 10px rgba(59,130,246,0.15);
-    }
-    #play-again-btn:hover {
-      background: rgba(59,130,246,0.3);
-      box-shadow: 0 0 20px rgba(59,130,246,0.3);
-    }
+    .lb-entry .lb-rank { width: 28px; flex-shrink: 0; }
+    .lb-entry .lb-name { flex: 1; }
+    .lb-entry .lb-score { font-weight: 700; min-width: 30px; text-align: right; }
 
-    /* Name entry screen */
-    #name-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-      justify-content: center;
-      align-items: center;
-      z-index: 101;
-    }
-    #name-overlay.visible {
-      display: flex;
-    }
-    #name-panel {
-      background: #080c15;
-      border-radius: 12px;
-      padding: 28px 32px;
-      border: 2px solid rgba(59,130,246,0.3);
-      box-shadow: 0 0 30px rgba(59,130,246,0.1), 0 12px 40px rgba(0,0,0,0.4);
-      min-width: 280px;
-      max-width: 320px;
-      text-align: center;
-    }
-    #name-panel h2 {
-      font-size: 24px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: 3px;
-      text-shadow: 0 0 15px rgba(59,130,246,0.4);
-      margin-bottom: 4px;
-    }
-    #name-panel .your-score {
-      font-size: 14px;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 16px;
-    }
-    #name-panel .your-score b {
-      color: #3b82f6;
-      text-shadow: 0 0 10px rgba(59,130,246,0.4);
-    }
-    #name-form {
-      text-align: left;
-    }
+    /* Name input */
+    #name-form { text-align: left; width: 100%; max-width: 240px; }
     #name-input {
       width: 100%;
       padding: 10px 12px;
@@ -338,140 +301,19 @@
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
       margin-bottom: 10px;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.4);
       color: #fff;
     }
     #name-input:focus {
       border-color: rgba(59,130,246,0.5);
       box-shadow: 0 0 10px rgba(59,130,246,0.2);
     }
-    #name-input::placeholder {
-      color: rgba(59,130,246,0.3);
-    }
-    #name-submit-btn {
-      background: rgba(59,130,246,0.2);
-      color: #3b82f6;
-      border: 1px solid rgba(59,130,246,0.4);
-      padding: 12px 32px;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      letter-spacing: 1px;
-      transition: all 0.15s;
-      box-shadow: 0 0 10px rgba(59,130,246,0.15);
-    }
-    #name-submit-btn:hover {
-      background: rgba(59,130,246,0.3);
-      box-shadow: 0 0 20px rgba(59,130,246,0.3);
-    }
-
-    /* Start screen */
-    #start-overlay {
-      display: flex;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-    }
-    #start-overlay.hidden { display: none; }
-    #start-panel {
-      background: #080c15;
-      border-radius: 12px;
-      padding: 32px;
-      border: 2px solid rgba(59,130,246,0.3);
-      box-shadow: 0 0 30px rgba(59,130,246,0.1), 0 12px 40px rgba(0,0,0,0.4);
-      text-align: center;
-      max-width: 320px;
-    }
-    #start-panel h1 {
-      font-size: 36px;
-      font-weight: 900;
-      color: #fff;
-      letter-spacing: 6px;
-      text-shadow: 0 0 25px rgba(59,130,246,0.6), 0 0 50px rgba(59,130,246,0.2);
-      margin-bottom: 8px;
-    }
-    #start-panel p {
-      font-size: 14px;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 6px;
-      line-height: 1.5;
-    }
-    #start-panel p b {
-      color: rgba(255,255,255,0.8);
-    }
-    #start-panel .hint {
-      font-size: 12px;
-      color: rgba(59,130,246,0.35);
-      margin-top: 16px;
-      letter-spacing: 1px;
-    }
-    #start-btn {
-      background: rgba(59,130,246,0.2);
-      color: #3b82f6;
-      border: 1px solid rgba(59,130,246,0.4);
-      padding: 14px 40px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 20px;
-      letter-spacing: 2px;
-      transition: all 0.15s;
-      box-shadow: 0 0 15px rgba(59,130,246,0.2);
-    }
-    #start-btn:hover {
-      background: rgba(59,130,246,0.3);
-      box-shadow: 0 0 25px rgba(59,130,246,0.4);
-    }
+    #name-input::placeholder { color: rgba(59,130,246,0.3); }
   </style>
 </head>
 <body>
 
-  <!-- Start Screen -->
-  <div id="start-overlay">
-    <div id="start-panel" class="panel-scanlines">
-      <h1>BLOCK</h1>
-      <p>Move your <b style="color:#3b82f6">blue square</b> into the <b style="color:#ef4444">red square</b> to launch it!</p>
-      <p>Then <b>dodge</b> the bouncing red square and collect <b style="color:#eab308">diamonds</b> to score points.</p>
-      <p>The longer you survive, the faster it gets! Every <b>5 diamonds</b>, a new red block appears!</p>
-      <div class="hint">Arrow keys or touch to move</div>
-      <button id="start-btn">Play!</button>
-    </div>
-  </div>
-
-  <!-- Name Entry Overlay -->
-  <div id="name-overlay">
-    <div id="name-panel" class="panel-scanlines">
-      <h2>GAME OVER</h2>
-      <div class="your-score">You scored <b id="name-score">0</b> points!</div>
-      <div id="name-placement" style="font-size:13px;color:rgba(59,130,246,0.5);margin-bottom:8px;"></div>
-      <div id="name-form">
-        <label for="name-input" style="font-size:13px;color:rgba(255,255,255,0.4);display:block;margin-bottom:6px">Enter your name for the leaderboard:</label>
-        <input type="text" id="name-input" maxlength="12" placeholder="Your name..." />
-        <button id="name-submit-btn">Submit</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Game Over Overlay -->
-  <div id="game-over-overlay">
-    <div id="game-over-panel" class="panel-scanlines">
-      <h2>LEADERBOARD</h2>
-      <div class="your-score"><b id="final-name">You</b> scored <b id="final-score">0</b> points!</div>
-      <div id="leaderboard">
-        <div class="lb-title">Top Scores</div>
-        <div id="lb-entries"></div>
-      </div>
-      <button id="play-again-btn">Play Again</button>
-    </div>
-  </div>
-
-  <!-- Zoom Lens (off-canvas, top-left) -->
+  <!-- Zoom Lens (off-canvas) -->
   <canvas id="zoom-lens" width="110" height="110"></canvas>
 
   <!-- Game -->
@@ -483,6 +325,37 @@
       <div class="edge-glow bottom" id="glow-bottom"></div>
       <div class="edge-glow left" id="glow-left"></div>
       <div class="edge-glow right" id="glow-right"></div>
+
+      <!-- Panels live inside the canvas wrapper, overlaying the game board -->
+      <div id="start-panel" class="board-panel panel-scanlines visible">
+        <h1>BLOCK</h1>
+        <p>Move your <b style="color:#3b82f6">blue square</b> into the <b style="color:#ef4444">red square</b> to launch it!</p>
+        <p>Then <b>dodge</b> the bouncing red square and collect <b style="color:#eab308">diamonds</b> to score points.</p>
+        <p>The longer you survive, the faster it gets! Every <b>5 diamonds</b>, a new red block appears!</p>
+        <div class="hint">Arrow keys or touch to move</div>
+        <button id="start-btn">Play!</button>
+      </div>
+
+      <div id="name-panel" class="board-panel panel-scanlines">
+        <h2>GAME OVER</h2>
+        <div class="your-score">You scored <b id="name-score">0</b> points!</div>
+        <div id="name-placement" style="font-size:13px;color:rgba(59,130,246,0.5);margin-bottom:8px;"></div>
+        <div id="name-form">
+          <label for="name-input" style="font-size:13px;color:rgba(255,255,255,0.4);display:block;margin-bottom:6px">Enter your name for the leaderboard:</label>
+          <input type="text" id="name-input" maxlength="12" placeholder="Your name..." />
+          <button id="name-submit-btn">Submit</button>
+        </div>
+      </div>
+
+      <div id="game-over-panel" class="board-panel panel-scanlines">
+        <h2>LEADERBOARD</h2>
+        <div class="your-score"><b id="final-name">You</b> scored <b id="final-score">0</b> points!</div>
+        <div id="leaderboard">
+          <div class="lb-title">Top Scores</div>
+          <div id="lb-entries"></div>
+        </div>
+        <button id="play-again-btn">Play Again</button>
+      </div>
     </div>
     <div id="instructions">Arrow keys or touch to move</div>
     <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
@@ -1242,13 +1115,13 @@
     }
 
     window.addEventListener('touchstart', e => {
-      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle, #sound-toggle')) return;
+      if (e.target.closest('button, input, .board-panel, #lens-toggle, #sound-toggle')) return;
       e.preventDefault();
       updateTouch(e);
     }, { passive: false });
 
     window.addEventListener('touchmove', e => {
-      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle, #sound-toggle')) return;
+      if (e.target.closest('button, input, .board-panel, #lens-toggle, #sound-toggle')) return;
       e.preventDefault();
       updateTouch(e);
     }, { passive: false });
@@ -1260,13 +1133,13 @@
 
     // Start button
     document.getElementById('start-btn').addEventListener('click', () => {
-      document.getElementById('start-overlay').classList.add('hidden');
+      document.getElementById('start-panel').classList.remove('visible');
       startGame();
     });
 
     // Play again button
     document.getElementById('play-again-btn').addEventListener('click', () => {
-      document.getElementById('game-over-overlay').classList.remove('visible');
+      document.getElementById('game-over-panel').classList.remove('visible');
       startGame();
     });
 
@@ -1868,7 +1741,7 @@
       document.getElementById('name-score').textContent = score;
       const savedName = localStorage.getItem('block_player_name') || '';
       document.getElementById('name-input').value = savedName;
-      document.getElementById('name-overlay').classList.add('visible');
+      document.getElementById('name-panel').classList.add('visible');
       setTimeout(() => document.getElementById('name-submit-btn').focus(), 100);
     }
 
@@ -1878,7 +1751,7 @@
       localStorage.setItem('block_player_name', playerName);
 
       // Hide name entry
-      document.getElementById('name-overlay').classList.remove('visible');
+      document.getElementById('name-panel').classList.remove('visible');
 
       // Add to leaderboard
       let lb = getLeaderboard();
@@ -1891,7 +1764,7 @@
       document.getElementById('final-name').textContent = playerName;
       document.getElementById('final-score').textContent = pendingScore;
       renderLeaderboard(lb, playerName, pendingScore);
-      document.getElementById('game-over-overlay').classList.add('visible');
+      document.getElementById('game-over-panel').classList.add('visible');
       setTimeout(() => document.getElementById('play-again-btn').focus(), 100);
     }
 
@@ -1901,11 +1774,11 @@
     // Global Enter key — triggers primary action of whichever modal is visible
     window.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
-      if (!document.getElementById('start-overlay').classList.contains('hidden')) {
+      if (document.getElementById('start-panel').classList.contains('visible')) {
         document.getElementById('start-btn').click();
-      } else if (document.getElementById('name-overlay').classList.contains('visible')) {
+      } else if (document.getElementById('name-panel').classList.contains('visible')) {
         submitName();
-      } else if (document.getElementById('game-over-overlay').classList.contains('visible')) {
+      } else if (document.getElementById('game-over-panel').classList.contains('visible')) {
         document.getElementById('play-again-btn').click();
       }
     });
