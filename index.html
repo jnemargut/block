@@ -64,6 +64,7 @@
     #canvas-wrapper {
       position: relative;
       display: inline-block;
+      overflow: visible;
     }
     canvas#game-canvas {
       display: block;
@@ -74,18 +75,16 @@
       max-width: calc(100vw - 24px);
       max-height: calc(100vw - 24px);
     }
-    .edge-glow {
+    .impact-burst {
       position: absolute;
       pointer-events: none;
-      border-radius: 8px;
-      opacity: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239,68,68,0.6) 0%, rgba(239,68,68,0) 70%);
+      transform: translate(-50%, -50%);
+      transition: opacity 0.3s, transform 0.3s;
     }
-    .edge-glow.top, .edge-glow.bottom { left: 0; right: 0; height: 6px; }
-    .edge-glow.left, .edge-glow.right { top: 0; bottom: 0; width: 6px; }
-    .edge-glow.top { top: -1px; }
-    .edge-glow.bottom { bottom: -1px; }
-    .edge-glow.left { left: -1px; }
-    .edge-glow.right { right: -1px; }
     #zoom-lens {
       display: none;
       position: fixed;
@@ -299,10 +298,6 @@
     <div id="score-display">Score: <span id="score">0</span></div>
     <div id="canvas-wrapper">
       <canvas id="game-canvas"></canvas>
-      <div class="edge-glow top" id="glow-top"></div>
-      <div class="edge-glow bottom" id="glow-bottom"></div>
-      <div class="edge-glow left" id="glow-left"></div>
-      <div class="edge-glow right" id="glow-right"></div>
 
       <!-- Panels live inside the canvas wrapper, overlaying the game board -->
       <div id="start-panel" class="board-panel panel-scanlines visible">
@@ -980,19 +975,44 @@
     let wallFlashes = []; // { side, alpha, pos (along wall) }
     let bounceParticles = []; // particles that fly outside the border
     // Per-side edge glow: each entry is { pos (0-1 along edge), alpha }
-    const edgeGlows = { top: [], bottom: [], left: [], right: [] };
-    const glowEls = {
-      top: document.getElementById('glow-top'),
-      bottom: document.getElementById('glow-bottom'),
-      left: document.getElementById('glow-left'),
-      right: document.getElementById('glow-right')
-    };
+    const canvasWrapper = document.getElementById('canvas-wrapper');
+
+    function spawnImpactBurst(side, pos) {
+      const el = document.createElement('div');
+      el.className = 'impact-burst';
+      const rect = canvas.getBoundingClientRect();
+      const wrapRect = canvasWrapper.getBoundingClientRect();
+      const scaleX = rect.width / ARENA;
+      const scaleY = rect.height / ARENA;
+      const canvasOffX = rect.left - wrapRect.left;
+      const canvasOffY = rect.top - wrapRect.top;
+
+      // Position the burst at the hit point, but outside the border
+      if (side === 'top') {
+        el.style.left = (canvasOffX + pos * scaleX) + 'px';
+        el.style.top = (canvasOffY - 6) + 'px';
+      } else if (side === 'bottom') {
+        el.style.left = (canvasOffX + pos * scaleX) + 'px';
+        el.style.top = (canvasOffY + rect.height + 6) + 'px';
+      } else if (side === 'left') {
+        el.style.left = (canvasOffX - 6) + 'px';
+        el.style.top = (canvasOffY + pos * scaleY) + 'px';
+      } else {
+        el.style.left = (canvasOffX + rect.width + 6) + 'px';
+        el.style.top = (canvasOffY + pos * scaleY) + 'px';
+      }
+      canvasWrapper.appendChild(el);
+      // Animate out
+      requestAnimationFrame(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%, -50%) scale(2)';
+      });
+      setTimeout(() => el.remove(), 350);
+    }
 
     function spawnWallBounce(side, pos, speed) {
       sfxWallBounce(speed);
-      // pos is in canvas coords; convert to 0-1 along that edge
-      const norm = (side === 'top' || side === 'bottom') ? pos / ARENA : pos / ARENA;
-      edgeGlows[side].push({ pos: norm, alpha: Math.min(1, 0.5 + speed * 0.1) });
+      spawnImpactBurst(side, pos);
       wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
       // Spawn small red shards that fly outward past the border
       const count = 3 + Math.floor(Math.random() * 3);
@@ -1026,40 +1046,6 @@
         p.alpha -= 0.03;
         p.rot += 0.1;
         if (p.alpha <= 0) bounceParticles.splice(i, 1);
-      }
-      // Update per-side edge glows
-      for (const side of ['top', 'bottom', 'left', 'right']) {
-        const hits = edgeGlows[side];
-        for (let i = hits.length - 1; i >= 0; i--) {
-          hits[i].alpha *= 0.88;
-          if (hits[i].alpha < 0.01) hits.splice(i, 1);
-        }
-        const el = glowEls[side];
-        if (!el) continue;
-        if (hits.length === 0) {
-          el.style.opacity = '0';
-        } else {
-          // Build a gradient with glow spots at each hit position
-          const isHoriz = (side === 'top' || side === 'bottom');
-          const stops = hits.map(h => {
-            const pct = (h.pos * 100).toFixed(1);
-            const a = h.alpha.toFixed(3);
-            return `rgba(239,68,68,${a}) ${pct}%`;
-          });
-          // Add transparent stops between hits
-          const grad = isHoriz
-            ? `linear-gradient(to right, transparent 0%, ${stops.join(', transparent, ')}, transparent 100%)`
-            : `linear-gradient(to bottom, transparent 0%, ${stops.join(', transparent, ')}, transparent 100%)`;
-          el.style.background = grad;
-          el.style.opacity = '1';
-          // Box shadow outward for glow effect
-          const maxAlpha = Math.max(...hits.map(h => h.alpha));
-          const spread = Math.round(4 + maxAlpha * 12);
-          if (side === 'top') el.style.boxShadow = `0 -${spread}px ${spread}px rgba(239,68,68,${(maxAlpha * 0.5).toFixed(2)})`;
-          else if (side === 'bottom') el.style.boxShadow = `0 ${spread}px ${spread}px rgba(239,68,68,${(maxAlpha * 0.5).toFixed(2)})`;
-          else if (side === 'left') el.style.boxShadow = `-${spread}px 0 ${spread}px rgba(239,68,68,${(maxAlpha * 0.5).toFixed(2)})`;
-          else el.style.boxShadow = `${spread}px 0 ${spread}px rgba(239,68,68,${(maxAlpha * 0.5).toFixed(2)})`;
-        }
       }
     }
 
@@ -1235,7 +1221,6 @@
       wallFlashes = [];
       bounceParticles = [];
       playerTrail = [];
-      for (const side in edgeGlows) edgeGlows[side] = [];
       pendingSpawns = [];
       gameRunning = true;
       launchTime = 0;
