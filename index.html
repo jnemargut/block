@@ -524,13 +524,15 @@
       });
     }
 
-    // --- Music: Tron-style driving techno, 5 variations ---
-    // Based on the original that felt right: sawtooth bass at 250ms,
-    // fast hats at 125ms, filtered saw pad. Simple, intense, driving.
-    // 5 bass patterns + pad voicings so it's not the same every game.
-    // Filter slowly opens over ~30s so it subtly intensifies.
+    // --- Music: 130 BPM techno with build → drop ---
+    // ~3 second build (filter sweep, snare roll, no kick) then DROP.
+    // Clean square sub bass (not farty saw). Filtered saw pad. Fast hats.
     let musicNodes = [];
     let lastSongIndex = -1;
+    const BPM = 130;
+    const BEAT = 60000 / BPM; // ~462ms
+    const EIGHTH = BEAT / 2;
+    const BUILD_BEATS = 8; // ~3.5 seconds of build before drop
 
     const songs = [
       { bass: [55, 55, 73.4, 55, 82.4, 55, 73.4, 65.4], pad: [110, 164.8, 220, 329.6] },
@@ -552,88 +554,142 @@
       musicPlaying = true;
       const s = pickSong();
       let beat = 0;
+      let dropped = false;
 
-      // Bass — sawtooth through resonant lowpass, 250ms interval
-      let bassStep = 0;
-      const bassFilter = audioCtx.createBiquadFilter();
-      bassFilter.type = 'lowpass'; bassFilter.frequency.value = 400; bassFilter.Q.value = 8;
-      bassFilter.connect(musicGain);
-
-      function scheduleBass() {
-        if (!musicPlaying) return;
-        const t = Math.min(beat / 60, 1);
-        // Filter opens over time
-        bassFilter.frequency.setTargetAtTime(400 + t * 250, audioCtx.currentTime, 0.3);
-
-        const osc = audioCtx.createOscillator();
-        const env = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.value = s.bass[bassStep % s.bass.length];
-        env.gain.setValueAtTime(0.35, audioCtx.currentTime);
-        env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-        osc.connect(bassFilter);
-        osc.connect(env); env.connect(bassFilter);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-        bassStep++; beat++;
-        musicNodes.push(setTimeout(scheduleBass, 250));
-      }
-
-      // Hi-hat — 125ms, fast and driving
-      let hatStep = 0;
-      function scheduleHat() {
-        if (!musicPlaying) return;
-        const accent = hatStep % 4 === 0 ? 0.12 : 0.05;
-        const bufSize = audioCtx.sampleRate * 0.04;
-        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-        const data = buf.getChannelData(0);
-        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
-        const src = audioCtx.createBufferSource(); src.buffer = buf;
-        const env = audioCtx.createGain();
-        env.gain.setValueAtTime(accent, audioCtx.currentTime);
-        env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
-        const hp = audioCtx.createBiquadFilter();
-        hp.type = 'highpass'; hp.frequency.value = 8000;
-        src.connect(hp); hp.connect(env); env.connect(musicGain);
-        src.start(); src.stop(audioCtx.currentTime + 0.05);
-        hatStep++;
-        musicNodes.push(setTimeout(scheduleHat, 125));
-      }
-
-      // Kick — every other bass hit (500ms = 120bpm four-on-floor)
-      let kickStep = 0;
-      function scheduleKick() {
-        if (!musicPlaying) return;
-        const osc = audioCtx.createOscillator();
-        const env = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.1);
-        env.gain.setValueAtTime(0.35, audioCtx.currentTime);
-        env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-        osc.connect(env); env.connect(musicGain);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.16);
-        kickStep++;
-        musicNodes.push(setTimeout(scheduleKick, 500));
-      }
-
-      // Pad — filtered saw chord, continuous
+      // Pad — filtered saw chord, continuous. Starts muffled, opens on drop.
       const padFilter = audioCtx.createBiquadFilter();
-      padFilter.type = 'lowpass'; padFilter.frequency.value = 600; padFilter.Q.value = 2;
+      padFilter.type = 'lowpass'; padFilter.frequency.value = 300; padFilter.Q.value = 2;
       padFilter.connect(musicGain);
+      const padGains = [];
       s.pad.forEach(f => {
         const osc = audioCtx.createOscillator();
         osc.type = 'sawtooth'; osc.frequency.value = f;
         osc.detune.value = Math.random() * 10 - 5;
-        const gain = audioCtx.createGain(); gain.gain.value = 0.06;
-        osc.connect(gain); gain.connect(padFilter); osc.start();
+        const g = audioCtx.createGain(); g.gain.value = 0.06;
+        osc.connect(g); g.connect(padFilter); osc.start();
+        padGains.push(g);
         musicNodes.push({ stop: () => {
-          gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
           osc.stop(audioCtx.currentTime + 0.3);
         }});
       });
 
-      // Start everything
-      scheduleBass(); scheduleHat(); scheduleKick();
+      // Bass filter — also starts muffled
+      const bassFilter = audioCtx.createBiquadFilter();
+      bassFilter.type = 'lowpass'; bassFilter.frequency.value = 150; bassFilter.Q.value = 3;
+      bassFilter.connect(musicGain);
+
+      // === MAIN BEAT CLOCK ===
+      let bassStep = 0;
+      function tick() {
+        if (!musicPlaying) return;
+        const building = beat < BUILD_BEATS;
+        const buildProgress = Math.min(beat / BUILD_BEATS, 1); // 0→1 during build
+
+        // --- THE DROP ---
+        if (!dropped && beat >= BUILD_BEATS) {
+          dropped = true;
+          // Snap filters open
+          bassFilter.frequency.setValueAtTime(600, audioCtx.currentTime);
+          padFilter.frequency.setValueAtTime(800, audioCtx.currentTime);
+          padGains.forEach(g => g.gain.setValueAtTime(0.08, audioCtx.currentTime));
+        }
+
+        // During build: sweep filters up
+        if (building) {
+          bassFilter.frequency.setTargetAtTime(150 + buildProgress * 300, audioCtx.currentTime, 0.1);
+          padFilter.frequency.setTargetAtTime(300 + buildProgress * 400, audioCtx.currentTime, 0.1);
+        }
+
+        // After drop: filter slowly opens more over time
+        if (dropped) {
+          const postDrop = Math.min((beat - BUILD_BEATS) / 50, 1);
+          bassFilter.frequency.setTargetAtTime(600 + postDrop * 200, audioCtx.currentTime, 0.5);
+          padFilter.frequency.setTargetAtTime(800 + postDrop * 300, audioCtx.currentTime, 0.5);
+        }
+
+        // Bass — clean square + sine sub (not farty sawtooth)
+        const bFreq = s.bass[bassStep % s.bass.length];
+        // Square bass
+        const o1 = audioCtx.createOscillator(); const e1 = audioCtx.createGain();
+        o1.type = 'square'; o1.frequency.value = bFreq;
+        e1.gain.setValueAtTime(building ? 0.15 : 0.3, audioCtx.currentTime);
+        e1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+        o1.connect(e1); e1.connect(bassFilter);
+        o1.start(); o1.stop(audioCtx.currentTime + 0.22);
+        // Sine sub
+        const o2 = audioCtx.createOscillator(); const e2 = audioCtx.createGain();
+        o2.type = 'sine'; o2.frequency.value = bFreq;
+        e2.gain.setValueAtTime(building ? 0.1 : 0.25, audioCtx.currentTime);
+        e2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        o2.connect(e2); e2.connect(musicGain); // sub bypasses filter
+        o2.start(); o2.stop(audioCtx.currentTime + 0.27);
+        bassStep++;
+
+        // Kick — only after the drop
+        if (dropped) {
+          const ko = audioCtx.createOscillator(); const ke = audioCtx.createGain();
+          ko.type = 'sine';
+          ko.frequency.setValueAtTime(160, audioCtx.currentTime);
+          ko.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.1);
+          ke.gain.setValueAtTime(0.4, audioCtx.currentTime);
+          ke.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+          ko.connect(ke); ke.connect(musicGain);
+          ko.start(); ko.stop(audioCtx.currentTime + 0.2);
+        }
+
+        // Snare roll during build — gets faster as drop approaches
+        if (building && beat >= BUILD_BEATS - 4) {
+          const rollSpeed = beat >= BUILD_BEATS - 2 ? EIGHTH / 2 : EIGHTH;
+          const rollCount = beat >= BUILD_BEATS - 2 ? 4 : 2;
+          for (let i = 0; i < rollCount; i++) {
+            setTimeout(() => {
+              if (!musicPlaying) return;
+              const len = 0.05;
+              const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+              const d = buf.getChannelData(0);
+              for (let j = 0; j < d.length; j++) d[j] = Math.random() * 2 - 1;
+              const src = audioCtx.createBufferSource(); src.buffer = buf;
+              const e = audioCtx.createGain();
+              e.gain.setValueAtTime(0.08 + buildProgress * 0.08, audioCtx.currentTime);
+              e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+              const bp = audioCtx.createBiquadFilter();
+              bp.type = 'bandpass'; bp.frequency.value = 3000; bp.Q.value = 1;
+              src.connect(bp); bp.connect(e); e.connect(musicGain);
+              src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+            }, i * rollSpeed);
+          }
+        }
+
+        beat++;
+        musicNodes.push(setTimeout(tick, BEAT));
+      }
+
+      // Hi-hat — 8th notes, always on but quieter during build
+      let hatStep = 0;
+      function tickHat() {
+        if (!musicPlaying) return;
+        const building = beat < BUILD_BEATS;
+        const base = hatStep % 4 === 0 ? 0.12 : 0.05;
+        const vol = building ? base * 0.6 : base;
+        const len = 0.04;
+        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src = audioCtx.createBufferSource(); src.buffer = buf;
+        const e = audioCtx.createGain();
+        e.gain.setValueAtTime(vol, audioCtx.currentTime);
+        e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = 'highpass'; hp.frequency.value = 8000;
+        src.connect(hp); hp.connect(e); e.connect(musicGain);
+        src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+        hatStep++;
+        musicNodes.push(setTimeout(tickHat, EIGHTH));
+      }
+
+      // Start clocks
+      tick(); tickHat();
     }
 
     function stopMusic() {
