@@ -630,6 +630,8 @@
     const ENEMY_SIZE = 26;
     let enemies = [];
     let launched = false; // has the game been launched?
+    const TRAIL_LENGTH = 8;
+    let playerTrail = []; // [{x, y}]
 
     function createFirstEnemy() {
       return {
@@ -909,6 +911,7 @@
       particles = [];
       wallFlashes = [];
       bounceParticles = [];
+      playerTrail = [];
       gameRunning = true;
       launchTime = 0;
       touchTarget = null;
@@ -962,6 +965,15 @@
       // Keep player in bounds
       player.x = Math.max(0, Math.min(ARENA - player.size, player.x));
       player.y = Math.max(0, Math.min(ARENA - player.size, player.y));
+
+      // Record trails
+      playerTrail.push({ x: player.x + player.size / 2, y: player.y + player.size / 2 });
+      if (playerTrail.length > TRAIL_LENGTH) playerTrail.shift();
+      for (const e of enemies) {
+        if (!e.trail) e.trail = [];
+        e.trail.push({ x: e.x + e.size / 2, y: e.y + e.size / 2 });
+        if (e.trail.length > TRAIL_LENGTH) e.trail.shift();
+      }
 
       // Before launch: check if player hits the first enemy to launch it
       if (!launched) {
@@ -1039,11 +1051,14 @@
             lastEnemyAtScore = score;
             spawnNewEnemy();
             sfxNewEnemy();
-            // Flash warning particles in red
+            // Flash warning particles at spawn location
+            const newE = enemies[enemies.length - 1];
+            const spawnX = newE.x + newE.size / 2;
+            const spawnY = newE.y + newE.size / 2;
             for (let i = 0; i < 12; i++) {
               const angle = (Math.PI * 2 / 12) * i;
               particles.push({
-                x: ARENA / 2, y: ARENA / 2,
+                x: spawnX, y: spawnY,
                 vx: Math.cos(angle) * 4,
                 vy: Math.sin(angle) * 4,
                 life: 1,
@@ -1162,6 +1177,33 @@
 
       // Particles
       drawParticles();
+
+      // Trails (Tron-style)
+      function drawTrail(trail, color, size) {
+        if (trail.length < 2) return;
+        for (let i = 1; i < trail.length; i++) {
+          const alpha = (i / trail.length) * 0.35;
+          const width = (i / trail.length) * (size * 0.6);
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = alpha;
+          ctx.lineWidth = width;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(trail[i - 1].x, trail[i - 1].y);
+          ctx.lineTo(trail[i].x, trail[i].y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // Enemy trails
+      for (const e of enemies) {
+        if (e.trail && e.trail.length > 1) drawTrail(e.trail, '#ef4444', e.size);
+      }
+      // Player trail
+      if (!deathAnim && playerTrail.length > 1) {
+        drawTrail(playerTrail, '#3b82f6', player.size);
+      }
 
       // All enemy squares
       for (const e of enemies) {
