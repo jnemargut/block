@@ -92,11 +92,31 @@
       border-radius: 50%;
       transition: transform 0.2s;
     }
-    #lens-toggle.on .switch {
+    #lens-toggle.on .switch, #sound-toggle.on .switch {
       background: #3b82f6;
     }
-    #lens-toggle.on .switch::after {
+    #lens-toggle.on .switch::after, #sound-toggle.on .switch::after {
       transform: translateX(16px);
+    }
+    #sound-toggle .switch {
+      position: relative;
+      width: 40px;
+      height: 24px;
+      background: #cbd5e1;
+      border-radius: 12px;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    #sound-toggle .switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
     }
 
     /* Game Over Overlay */
@@ -358,15 +378,243 @@
     <div id="score-display">Score: <span id="score">0</span></div>
     <canvas id="game-canvas"></canvas>
     <div id="instructions">Arrow keys or touch to move</div>
-    <div id="lens-toggle" class="on">
-      <span class="switch"></span>
-      <span>Touch preview</span>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+      <div id="lens-toggle" class="on">
+        <span class="switch"></span>
+        <span>Touch preview</span>
+      </div>
+      <div id="sound-toggle" class="on" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;">
+        <span class="switch"></span>
+        <span>Sound</span>
+      </div>
     </div>
   </div>
 
   <script>
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
+
+    // ==================== AUDIO ENGINE ====================
+    let audioCtx = null;
+    let soundEnabled = localStorage.getItem('block_sound') !== 'off';
+    let musicGain = null;
+    let sfxGain = null;
+    let musicPlaying = false;
+
+    function initAudio() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = 0.25;
+      musicGain.connect(audioCtx.destination);
+      sfxGain = audioCtx.createGain();
+      sfxGain.gain.value = 0.4;
+      sfxGain.connect(audioCtx.destination);
+      updateAudioMute();
+    }
+
+    function updateAudioMute() {
+      if (!audioCtx) return;
+      const vol = soundEnabled ? 1 : 0;
+      musicGain.gain.setTargetAtTime(soundEnabled ? 0.25 : 0, audioCtx.currentTime, 0.05);
+      sfxGain.gain.setTargetAtTime(soundEnabled ? 0.4 : 0, audioCtx.currentTime, 0.05);
+    }
+
+    // --- Synth helpers ---
+    function playTone(freq, type, duration, dest, detune) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      if (detune) osc.detune.value = detune;
+      env.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(env);
+      env.connect(dest || sfxGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playNoise(duration, dest) {
+      if (!audioCtx) return;
+      const bufSize = audioCtx.sampleRate * duration;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      const env = audioCtx.createGain();
+      env.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 2000;
+      src.connect(filter);
+      filter.connect(env);
+      env.connect(dest || sfxGain);
+      src.start();
+      src.stop(audioCtx.currentTime + duration);
+    }
+
+    // --- Sound effects ---
+    function sfxLaunch() {
+      playTone(220, 'sawtooth', 0.3, sfxGain);
+      playTone(440, 'square', 0.15, sfxGain);
+      playNoise(0.1);
+    }
+
+    function sfxDiamond() {
+      playTone(880, 'sine', 0.12, sfxGain);
+      playTone(1320, 'sine', 0.15, sfxGain);
+      setTimeout(() => playTone(1760, 'sine', 0.1, sfxGain), 60);
+    }
+
+    function sfxWallBounce(intensity) {
+      if (!audioCtx) return;
+      const freq = 80 + intensity * 30;
+      playTone(freq, 'square', 0.08, sfxGain);
+      playNoise(0.05);
+    }
+
+    function sfxNewEnemy() {
+      playTone(150, 'sawtooth', 0.4, sfxGain);
+      playTone(100, 'square', 0.5, sfxGain, -10);
+      playNoise(0.15);
+    }
+
+    function sfxDeath() {
+      if (!audioCtx) return;
+      // Deep rumble + descending sweep + noise burst
+      playTone(80, 'sawtooth', 1.0, sfxGain);
+      playTone(60, 'square', 1.2, sfxGain, 5);
+      playNoise(0.6);
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.8);
+      env.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+      osc.connect(env);
+      env.connect(sfxGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.0);
+    }
+
+    // --- Music: Tron-style techno loop ---
+    let musicNodes = [];
+
+    function startMusic() {
+      if (!audioCtx || musicPlaying) return;
+      musicPlaying = true;
+
+      // Bass sequence
+      const bassNotes = [55, 55, 73.4, 55, 82.4, 55, 73.4, 65.4];
+      let bassStep = 0;
+      function scheduleBass() {
+        if (!musicPlaying) return;
+        const osc = audioCtx.createOscillator();
+        const env = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+        osc.type = 'sawtooth';
+        osc.frequency.value = bassNotes[bassStep % bassNotes.length];
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+        filter.Q.value = 8;
+        env.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        osc.connect(filter);
+        filter.connect(env);
+        env.connect(musicGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+        bassStep++;
+        musicNodes.push(setTimeout(scheduleBass, 250));
+      }
+      scheduleBass();
+
+      // Hi-hat pattern
+      let hatStep = 0;
+      function scheduleHat() {
+        if (!musicPlaying) return;
+        const accent = hatStep % 4 === 0 ? 0.12 : 0.05;
+        const bufSize = audioCtx.sampleRate * 0.04;
+        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        const env = audioCtx.createGain();
+        env.gain.setValueAtTime(accent, audioCtx.currentTime);
+        env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 8000;
+        src.connect(hp);
+        hp.connect(env);
+        env.connect(musicGain);
+        src.start();
+        src.stop(audioCtx.currentTime + 0.05);
+        hatStep++;
+        musicNodes.push(setTimeout(scheduleHat, 125));
+      }
+      scheduleHat();
+
+      // Pad / atmosphere — slow-moving filtered saw chord
+      function startPad() {
+        const freqs = [110, 164.8, 220, 329.6];
+        freqs.forEach(f => {
+          const osc = audioCtx.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.value = f;
+          osc.detune.value = Math.random() * 10 - 5;
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 600;
+          filter.Q.value = 2;
+          const gain = audioCtx.createGain();
+          gain.gain.value = 0.06;
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(musicGain);
+          osc.start();
+          musicNodes.push({ stop: () => {
+            gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+            osc.stop(audioCtx.currentTime + 0.3);
+          }});
+        });
+      }
+      startPad();
+    }
+
+    function stopMusic() {
+      musicPlaying = false;
+      musicNodes.forEach(n => {
+        if (typeof n === 'number') clearTimeout(n);
+        else if (n && n.stop) n.stop();
+      });
+      musicNodes = [];
+    }
+
+    // Sound toggle
+    const soundToggle = document.getElementById('sound-toggle');
+    if (!soundEnabled) soundToggle.classList.remove('on');
+    soundToggle.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundToggle.classList.toggle('on', soundEnabled);
+      localStorage.setItem('block_sound', soundEnabled ? 'on' : 'off');
+      if (soundEnabled) {
+        initAudio();
+        if (gameRunning && launched) startMusic();
+      } else {
+        stopMusic();
+      }
+      updateAudioMute();
+    });
+
+    // Also exclude sound toggle from touch handler
+    // (handled in the closest() check below)
 
     // Arena size (square)
     const ARENA = 420;
@@ -460,6 +708,7 @@
     let bounceParticles = []; // particles that fly outside the border
 
     function spawnWallBounce(side, pos, speed) {
+      sfxWallBounce(speed);
       wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
       // Spawn small red shards that fly outward past the border
       const count = 3 + Math.floor(Math.random() * 3);
@@ -618,13 +867,13 @@
     }
 
     window.addEventListener('touchstart', e => {
-      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle')) return;
+      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle, #sound-toggle')) return;
       e.preventDefault();
       updateTouch(e);
     }, { passive: false });
 
     window.addEventListener('touchmove', e => {
-      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle')) return;
+      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle, #sound-toggle')) return;
       e.preventDefault();
       updateTouch(e);
     }, { passive: false });
@@ -647,6 +896,8 @@
     });
 
     function startGame() {
+      initAudio();
+      stopMusic();
       score = 0;
       lastEnemyAtScore = 0;
       updateScoreDisplay();
@@ -726,6 +977,8 @@
           launched = true;
           launchTime = Date.now();
           invincibleUntil = Date.now() + 1000; // 1 second of safety
+          sfxLaunch();
+          startMusic();
           spawnDiamond();
         }
         updateParticles();
@@ -777,6 +1030,7 @@
         if (dist < (player.size / 2 + diamond.size / 2)) {
           score++;
           updateScoreDisplay();
+          sfxDiamond();
           spawnParticles(diamond.x, diamond.y);
           diamond.active = false;
 
@@ -784,6 +1038,7 @@
           if (score > 0 && score % 5 === 0 && score !== lastEnemyAtScore) {
             lastEnemyAtScore = score;
             spawnNewEnemy();
+            sfxNewEnemy();
             // Flash warning particles in red
             for (let i = 0; i < 12; i++) {
               const angle = (Math.PI * 2 / 12) * i;
@@ -1055,6 +1310,8 @@
     }
 
     function startDeathAnim(killerEnemy, speedMult) {
+      stopMusic();
+      sfxDeath();
       const shards = spawnShards(player.x, player.y, player.size);
       deathAnim = {
         shards,
