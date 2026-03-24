@@ -630,7 +630,7 @@
     const ENEMY_SIZE = 26;
     let enemies = [];
     let launched = false; // has the game been launched?
-    const TRAIL_LENGTH = 8;
+    const TRAIL_LENGTH = 14;
     let playerTrail = []; // [{x, y}]
 
     function createFirstEnemy() {
@@ -1178,20 +1178,15 @@
       // Particles
       drawParticles();
 
-      // Trails (Tron-style)
+      // Trails (Tron-style) — full-width fading rectangles
       function drawTrail(trail, color, size) {
         if (trail.length < 2) return;
-        for (let i = 1; i < trail.length; i++) {
-          const alpha = (i / trail.length) * 0.35;
-          const width = (i / trail.length) * (size * 0.6);
-          ctx.strokeStyle = color;
+        const half = size / 2;
+        for (let i = 0; i < trail.length; i++) {
+          const alpha = (i / trail.length) * 0.3;
           ctx.globalAlpha = alpha;
-          ctx.lineWidth = width;
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          ctx.moveTo(trail[i - 1].x, trail[i - 1].y);
-          ctx.lineTo(trail[i].x, trail[i].y);
-          ctx.stroke();
+          ctx.fillStyle = color;
+          ctx.fillRect(trail[i].x - half, trail[i].y - half, size, size);
         }
         ctx.globalAlpha = 1;
       }
