@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Block</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+    #game-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    #score-display {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1f2937;
+      letter-spacing: 1px;
+    }
+    #score-display span {
+      color: #3b82f6;
+    }
+    canvas {
+      border: 3px solid #cbd5e1;
+      border-radius: 8px;
+      background: #f8fafc;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    #instructions {
+      font-size: 13px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* Game Over Overlay */
+    #game-over-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    #game-over-overlay.visible {
+      display: flex;
+    }
+    #game-over-panel {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px 32px;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      min-width: 260px;
+      max-width: 320px;
+      text-align: center;
+    }
+    #game-over-panel h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    #game-over-panel .your-score {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 16px;
+    }
+    #game-over-panel .your-score b {
+      color: #3b82f6;
+    }
+    #leaderboard {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+    #leaderboard .lb-title {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .lb-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      padding: 5px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .lb-entry:last-child { border-bottom: none; }
+    .lb-entry.you {
+      color: #3b82f6;
+      font-weight: 700;
+    }
+    .lb-entry .lb-rank {
+      width: 28px;
+      flex-shrink: 0;
+    }
+    .lb-entry .lb-name {
+      flex: 1;
+    }
+    .lb-entry .lb-score {
+      font-weight: 700;
+      min-width: 30px;
+      text-align: right;
+    }
+    #play-again-btn {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.15s;
+    }
+    #play-again-btn:hover {
+      background: #2563eb;
+    }
+
+    /* Name entry screen */
+    #name-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 101;
+    }
+    #name-overlay.visible {
+      display: flex;
+    }
+    #name-panel {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px 32px;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      min-width: 280px;
+      max-width: 320px;
+      text-align: center;
+    }
+    #name-panel h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    #name-panel .your-score {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 16px;
+    }
+    #name-panel .your-score b {
+      color: #3b82f6;
+    }
+    #name-form {
+      text-align: left;
+    }
+    #name-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 10px;
+    }
+    #name-input:focus {
+      border-color: #3b82f6;
+    }
+    #name-submit-btn {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.15s;
+    }
+    #name-submit-btn:hover {
+      background: #2563eb;
+    }
+
+    /* Start screen */
+    #start-overlay {
+      display: flex;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    #start-overlay.hidden { display: none; }
+    #start-panel {
+      background: #fff;
+      border-radius: 14px;
+      padding: 32px;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      text-align: center;
+      max-width: 320px;
+    }
+    #start-panel h1 {
+      font-size: 36px;
+      font-weight: 900;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    #start-panel p {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+    #start-panel .hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 16px;
+    }
+    #start-btn {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.15s;
+    }
+    #start-btn:hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+
+  <!-- Start Screen -->
+  <div id="start-overlay">
+    <div id="start-panel">
+      <h1>BLOCK</h1>
+      <p>Move your <b style="color:#3b82f6">blue square</b> into the <b style="color:#ef4444">red square</b> to launch it!</p>
+      <p>Then <b>dodge</b> the bouncing red square and collect <b style="color:#eab308">diamonds</b> to score points.</p>
+      <p>The longer you survive, the faster it gets! Every <b>5 diamonds</b>, a new red block appears!</p>
+      <div class="hint">Use arrow keys to move</div>
+      <button id="start-btn">Play!</button>
+    </div>
+  </div>
+
+  <!-- Name Entry Overlay -->
+  <div id="name-overlay">
+    <div id="name-panel">
+      <h2>GAME OVER</h2>
+      <div class="your-score">You scored <b id="name-score">0</b> points!</div>
+      <div id="name-form">
+        <label for="name-input" style="font-size:13px;color:#64748b;display:block;margin-bottom:6px">Enter your name for the leaderboard:</label>
+        <input type="text" id="name-input" maxlength="12" placeholder="Your name..." />
+        <button id="name-submit-btn">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Overlay -->
+  <div id="game-over-overlay">
+    <div id="game-over-panel">
+      <h2>LEADERBOARD</h2>
+      <div class="your-score"><b id="final-name">You</b> scored <b id="final-score">0</b> points!</div>
+      <div id="leaderboard">
+        <div class="lb-title">Top Scores</div>
+        <div id="lb-entries"></div>
+      </div>
+      <button id="play-again-btn">Play Again</button>
+    </div>
+  </div>
+
+  <!-- Game -->
+  <div id="game-wrapper">
+    <div id="score-display">Score: <span id="score">0</span></div>
+    <canvas id="game-canvas"></canvas>
+    <div id="instructions">Arrow keys to move</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Arena size (square)
+    const ARENA = 420;
+    canvas.width = ARENA;
+    canvas.height = ARENA;
+
+    // Player
+    const PLAYER_SIZE = 30;
+    let player = { x: ARENA / 2 - PLAYER_SIZE / 2, y: ARENA - PLAYER_SIZE - 10, size: PLAYER_SIZE };
+    const playerSpeed = 5;
+
+    // Bouncing squares (enemies)
+    const ENEMY_SIZE = 26;
+    let enemies = [];
+    let launched = false; // has the game been launched?
+
+    function createFirstEnemy() {
+      return {
+        x: ARENA / 2 - ENEMY_SIZE / 2,
+        y: ARENA / 2 - ENEMY_SIZE / 2,
+        size: ENEMY_SIZE,
+        vx: 0, vy: 0,
+        baseSpeed: 3
+      };
+    }
+
+    function spawnNewEnemy() {
+      const SAFE_DIST = 80; // minimum distance from player center
+      const speed = 2.5 + Math.random() * 1.5;
+      let ex, ey, evx, evy;
+      let tries = 0;
+
+      do {
+        // Pick a random edge
+        const side = Math.floor(Math.random() * 4);
+        if (side === 0) { // top
+          ex = Math.random() * (ARENA - ENEMY_SIZE);
+          ey = 0;
+          evx = (Math.random() - 0.5) * speed;
+          evy = Math.abs(speed * 0.8 + Math.random());
+        } else if (side === 1) { // bottom
+          ex = Math.random() * (ARENA - ENEMY_SIZE);
+          ey = ARENA - ENEMY_SIZE;
+          evx = (Math.random() - 0.5) * speed;
+          evy = -(Math.abs(speed * 0.8 + Math.random()));
+        } else if (side === 2) { // left
+          ex = 0;
+          ey = Math.random() * (ARENA - ENEMY_SIZE);
+          evx = Math.abs(speed * 0.8 + Math.random());
+          evy = (Math.random() - 0.5) * speed;
+        } else { // right
+          ex = ARENA - ENEMY_SIZE;
+          ey = Math.random() * (ARENA - ENEMY_SIZE);
+          evx = -(Math.abs(speed * 0.8 + Math.random()));
+          evy = (Math.random() - 0.5) * speed;
+        }
+        tries++;
+      } while (tries < 30 && Math.hypot(
+        (ex + ENEMY_SIZE / 2) - (player.x + player.size / 2),
+        (ey + ENEMY_SIZE / 2) - (player.y + player.size / 2)
+      ) < SAFE_DIST);
+
+      enemies.push({
+        x: ex, y: ey, size: ENEMY_SIZE,
+        vx: evx, vy: evy,
+        baseSpeed: speed
+      });
+    }
+
+    // Diamond
+    const DIAMOND_SIZE = 16;
+    let diamond = { x: 0, y: 0, size: DIAMOND_SIZE, active: false };
+
+    // Particles for collection effect
+    let particles = [];
+
+    // Game state
+    let score = 0;
+    let lastEnemyAtScore = 0; // track when we last spawned an enemy
+    let gameRunning = false;
+    let launchTime = 0;
+    let invincibleUntil = 0; // timestamp when invincibility ends
+    let keys = {};
+    let animFrameId = null;
+
+    // Leaderboard (stored in localStorage)
+    function getLeaderboard() {
+      try {
+        return JSON.parse(localStorage.getItem('block_leaderboard')) || [];
+      } catch(e) { return []; }
+    }
+    function saveLeaderboard(lb) {
+      localStorage.setItem('block_leaderboard', JSON.stringify(lb));
+    }
+
+    // Spawn diamond at random location (avoid all enemies and player)
+    function spawnDiamond() {
+      let tries = 0;
+      let overlapping;
+      do {
+        diamond.x = DIAMOND_SIZE + Math.random() * (ARENA - DIAMOND_SIZE * 2);
+        diamond.y = DIAMOND_SIZE + Math.random() * (ARENA - DIAMOND_SIZE * 2 - 60);
+        tries++;
+        overlapping = rectsOverlap(diamond.x - DIAMOND_SIZE/2, diamond.y - DIAMOND_SIZE/2, DIAMOND_SIZE, DIAMOND_SIZE,
+                                   player.x, player.y, player.size, player.size);
+        if (!overlapping) {
+          for (const e of enemies) {
+            if (rectsOverlap(diamond.x - DIAMOND_SIZE/2, diamond.y - DIAMOND_SIZE/2, DIAMOND_SIZE, DIAMOND_SIZE,
+                             e.x, e.y, e.size, e.size)) {
+              overlapping = true;
+              break;
+            }
+          }
+        }
+      } while (tries < 50 && overlapping);
+      diamond.active = true;
+    }
+
+    function rectsOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
+      return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+    }
+
+    // Particle burst on diamond collection
+    function spawnParticles(x, y) {
+      for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 / 8) * i;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * (2 + Math.random() * 2),
+          vy: Math.sin(angle) * (2 + Math.random() * 2),
+          life: 1,
+          size: 3 + Math.random() * 3,
+          color: Math.random() > 0.5 ? '#eab308' : '#fbbf24'
+        });
+      }
+    }
+
+    function updateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.03;
+        p.size *= 0.97;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    // Input
+    window.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      // Prevent page scroll with arrow keys
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    // Start button
+    document.getElementById('start-btn').addEventListener('click', () => {
+      document.getElementById('start-overlay').classList.add('hidden');
+      startGame();
+    });
+
+    // Play again button
+    document.getElementById('play-again-btn').addEventListener('click', () => {
+      document.getElementById('game-over-overlay').classList.remove('visible');
+      startGame();
+    });
+
+    function startGame() {
+      score = 0;
+      lastEnemyAtScore = 0;
+      updateScoreDisplay();
+      player.x = ARENA / 2 - PLAYER_SIZE / 2;
+      player.y = ARENA - PLAYER_SIZE - 10;
+      enemies = [createFirstEnemy()];
+      launched = false;
+      diamond.active = false;
+      particles = [];
+      gameRunning = true;
+      launchTime = 0;
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      gameLoop();
+    }
+
+    function updateScoreDisplay() {
+      document.getElementById('score').textContent = score;
+    }
+
+    function getSpeedMultiplier() {
+      if (!launched || launchTime === 0) return 1;
+      const elapsed = (Date.now() - launchTime) / 1000;
+      // Speed increases by ~15% every 10 seconds
+      return 1 + (elapsed * 0.015);
+    }
+
+    function update() {
+      if (!gameRunning) return;
+
+      // Player movement
+      if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+        player.x -= playerSpeed;
+      }
+      if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+        player.x += playerSpeed;
+      }
+      if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+        player.y -= playerSpeed;
+      }
+      if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+        player.y += playerSpeed;
+      }
+
+      // Keep player in bounds
+      player.x = Math.max(0, Math.min(ARENA - player.size, player.x));
+      player.y = Math.max(0, Math.min(ARENA - player.size, player.y));
+
+      // Before launch: check if player hits the first enemy to launch it
+      if (!launched) {
+        const firstEnemy = enemies[0];
+        if (rectsOverlap(player.x, player.y, player.size, player.size,
+                         firstEnemy.x, firstEnemy.y, firstEnemy.size, firstEnemy.size)) {
+          // Launch the enemy upward at an angle
+          const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+          firstEnemy.vx = Math.cos(angle) * firstEnemy.baseSpeed;
+          firstEnemy.vy = Math.sin(angle) * firstEnemy.baseSpeed;
+          launched = true;
+          launchTime = Date.now();
+          invincibleUntil = Date.now() + 1000; // 1 second of safety
+          spawnDiamond();
+        }
+        updateParticles();
+        return;
+      }
+
+      // Move all enemies with speed multiplier
+      const speedMult = getSpeedMultiplier();
+      for (const e of enemies) {
+        e.x += e.vx * speedMult;
+        e.y += e.vy * speedMult;
+
+        // Bounce off walls
+        if (e.x <= 0) {
+          e.x = 0;
+          e.vx = Math.abs(e.vx);
+        }
+        if (e.x + e.size >= ARENA) {
+          e.x = ARENA - e.size;
+          e.vx = -Math.abs(e.vx);
+        }
+        if (e.y <= 0) {
+          e.y = 0;
+          e.vy = Math.abs(e.vy);
+        }
+        if (e.y + e.size >= ARENA) {
+          e.y = ARENA - e.size;
+          e.vy = -Math.abs(e.vy);
+        }
+
+        // Check collision with player (game over) — skip if invincible
+        if (Date.now() > invincibleUntil &&
+            rectsOverlap(player.x + 2, player.y + 2, player.size - 4, player.size - 4,
+                         e.x + 2, e.y + 2, e.size - 4, e.size - 4)) {
+          gameOver();
+          return;
+        }
+      }
+
+      // Check diamond collection
+      if (diamond.active) {
+        const px = player.x + player.size / 2;
+        const py = player.y + player.size / 2;
+        const dist = Math.hypot(px - diamond.x, py - diamond.y);
+        if (dist < (player.size / 2 + diamond.size / 2)) {
+          score++;
+          updateScoreDisplay();
+          spawnParticles(diamond.x, diamond.y);
+          diamond.active = false;
+
+          // Spawn a new enemy every 5 diamonds
+          if (score > 0 && score % 5 === 0 && score !== lastEnemyAtScore) {
+            lastEnemyAtScore = score;
+            spawnNewEnemy();
+            // Flash warning particles in red
+            for (let i = 0; i < 12; i++) {
+              const angle = (Math.PI * 2 / 12) * i;
+              particles.push({
+                x: ARENA / 2, y: ARENA / 2,
+                vx: Math.cos(angle) * 4,
+                vy: Math.sin(angle) * 4,
+                life: 1,
+                size: 5,
+                color: '#ef4444'
+              });
+            }
+          }
+
+          setTimeout(() => {
+            if (gameRunning) spawnDiamond();
+          }, 400);
+        }
+      }
+
+      updateParticles();
+    }
+
+    function drawDiamond(x, y, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(Math.PI / 4);
+
+      // Shadow
+      ctx.shadowColor = 'rgba(234, 179, 8, 0.35)';
+      ctx.shadowBlur = 10;
+
+      // Main body
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(-size / 2, -size / 2, size, size);
+
+      // Shine
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.fillRect(-size / 2, -size / 2, size * 0.55, size * 0.55);
+
+      // Subtle border
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-size / 2, -size / 2, size, size);
+
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, ARENA, ARENA);
+
+      // Arena background
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, ARENA, ARENA);
+
+      // Subtle grid
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= ARENA; i += 30) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0); ctx.lineTo(i, ARENA);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i); ctx.lineTo(ARENA, i);
+        ctx.stroke();
+      }
+
+      // Diamond
+      if (diamond.active) {
+        // Gentle bob animation
+        const bobY = Math.sin(Date.now() / 300) * 2;
+        drawDiamond(diamond.x, diamond.y + bobY, diamond.size);
+      }
+
+      // Particles
+      drawParticles();
+
+      // All enemy squares
+      for (const e of enemies) {
+        ctx.shadowColor = 'rgba(239, 68, 68, 0.3)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(e.x, e.y, e.size, e.size);
+        ctx.shadowBlur = 0;
+        // Bottom edge (3D)
+        ctx.fillStyle = '#dc2626';
+        ctx.fillRect(e.x, e.y + e.size - 4, e.size, 4);
+        // Top highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(e.x, e.y, e.size, 4);
+      }
+
+      // Player square (flashes when invincible)
+      const isInvincible = Date.now() < invincibleUntil;
+      const showPlayer = !isInvincible || Math.floor(Date.now() / 80) % 2 === 0;
+      if (showPlayer) {
+        if (isInvincible) {
+          // Glowing shield effect during invincibility
+          ctx.shadowColor = 'rgba(59, 130, 246, 0.6)';
+          ctx.shadowBlur = 16;
+        } else {
+          ctx.shadowColor = 'rgba(59, 130, 246, 0.3)';
+          ctx.shadowBlur = 8;
+        }
+        ctx.fillStyle = isInvincible ? '#60a5fa' : '#3b82f6';
+        ctx.fillRect(player.x, player.y, player.size, player.size);
+        ctx.shadowBlur = 0;
+        // Bottom edge (3D)
+        ctx.fillStyle = isInvincible ? '#3b82f6' : '#2563eb';
+        ctx.fillRect(player.x, player.y + player.size - 4, player.size, 4);
+        // Top highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(player.x, player.y, player.size, 4);
+      }
+
+      // Pre-launch hint
+      if (!launched && gameRunning && enemies.length > 0) {
+        const firstEnemy = enemies[0];
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 14px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = 0;
+        ctx.fillText('Move into the red square to launch it!', ARENA / 2, 28);
+
+        // Pulsing arrow above enemy
+        const pulse = Math.sin(Date.now() / 200) * 3;
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.moveTo(firstEnemy.x + firstEnemy.size / 2, firstEnemy.y - 10 + pulse);
+        ctx.lineTo(firstEnemy.x + firstEnemy.size / 2 - 7, firstEnemy.y - 20 + pulse);
+        ctx.lineTo(firstEnemy.x + firstEnemy.size / 2 + 7, firstEnemy.y - 20 + pulse);
+        ctx.fill();
+      }
+
+      // Speed indicator + enemy count
+      if (launched) {
+        // Enemy count indicator (top right)
+        if (enemies.length > 1) {
+          ctx.font = 'bold 12px system-ui, sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#ef4444';
+          ctx.fillText('Blocks: ' + enemies.length, ARENA - 8, ARENA - 8);
+        }
+        const mult = getSpeedMultiplier();
+        const barCount = Math.min(Math.floor(mult * 2), 12);
+        ctx.font = '10px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText('Speed', 8, ARENA - 8);
+        for (let i = 0; i < barCount; i++) {
+          const ratio = i / 12;
+          if (ratio < 0.33) ctx.fillStyle = '#22c55e';
+          else if (ratio < 0.66) ctx.fillStyle = '#eab308';
+          else ctx.fillStyle = '#ef4444';
+          ctx.fillRect(46 + i * 9, ARENA - 16, 6, 10);
+        }
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (gameRunning) {
+        animFrameId = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    let pendingScore = 0;
+
+    function gameOver() {
+      gameRunning = false;
+      pendingScore = score;
+
+      // Show name entry screen
+      document.getElementById('name-score').textContent = score;
+      document.getElementById('name-input').value = '';
+      document.getElementById('name-overlay').classList.add('visible');
+      // Focus the input after a tiny delay so it works
+      setTimeout(() => document.getElementById('name-input').focus(), 100);
+    }
+
+    function submitName() {
+      let playerName = document.getElementById('name-input').value.trim();
+      if (!playerName) playerName = 'Player';
+
+      // Hide name entry
+      document.getElementById('name-overlay').classList.remove('visible');
+
+      // Add to leaderboard
+      let lb = getLeaderboard();
+      lb.push({ name: playerName, score: pendingScore, isPlayer: true });
+      lb.sort((a, b) => b.score - a.score);
+      lb = lb.slice(0, 10);
+      saveLeaderboard(lb);
+
+      // Show leaderboard screen
+      document.getElementById('final-name').textContent = playerName;
+      document.getElementById('final-score').textContent = pendingScore;
+      renderLeaderboard(lb, playerName, pendingScore);
+      document.getElementById('game-over-overlay').classList.add('visible');
+    }
+
+    // Submit name on button click or Enter key
+    document.getElementById('name-submit-btn').addEventListener('click', submitName);
+    document.getElementById('name-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitName();
+    });
+
+    function renderLeaderboard(lb, currentName, currentScore) {
+      const container = document.getElementById('lb-entries');
+      container.innerHTML = '';
+      let highlightedCurrent = false;
+      lb.forEach((entry, i) => {
+        const rank = i + 1;
+        const div = document.createElement('div');
+
+        // Highlight the current player's entry (match name + score, only first match)
+        const isCurrentEntry = entry.isPlayer && entry.name === currentName && entry.score === currentScore && !highlightedCurrent;
+        if (isCurrentEntry) highlightedCurrent = true;
+
+        div.className = 'lb-entry' + (isCurrentEntry ? ' you' : '');
+
+        const rankStr = rank === 1 ? '🏆' : rank + '.';
+        let nameStr = entry.name;
+        if (isCurrentEntry) {
+          nameStr = rank === 1 ? entry.name + ' 🏆' : '→ ' + entry.name;
+        }
+
+        div.innerHTML = `
+          <span class="lb-rank">${rankStr}</span>
+          <span class="lb-name">${nameStr}</span>
+          <span class="lb-score">${entry.score}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Seed leaderboard if empty
+    (function initLeaderboard() {
+      let lb = getLeaderboard();
+      if (lb.length === 0 || lb.every(e => e.isPlayer)) {
+        const seeded = [
+          { name: 'Alex', score: 15, isPlayer: false },
+          { name: 'Sam', score: 10, isPlayer: false },
+          { name: 'Jordan', score: 7, isPlayer: false },
+          { name: 'Riley', score: 5, isPlayer: false },
+          { name: 'Casey', score: 3, isPlayer: false },
+        ];
+        const playerEntries = lb.filter(e => e.isPlayer);
+        lb = [...seeded, ...playerEntries].sort((a, b) => b.score - a.score).slice(0, 10);
+        saveLeaderboard(lb);
+      }
+    })();
+
+    // Initialize first enemy for initial draw
+    enemies = [createFirstEnemy()];
+
+    // Draw initial idle state
+    draw();
+  </script>
+</body>
+</html>
