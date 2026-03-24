@@ -455,6 +455,47 @@
     // Death animation state
     let deathAnim = null; // { shards, startTime, duration, killerEnemy, speedMult }
 
+    // Wall bounce effects
+    let wallFlashes = []; // { side, alpha, pos (along wall) }
+    let bounceParticles = []; // particles that fly outside the border
+
+    function spawnWallBounce(side, pos, speed) {
+      wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
+      // Spawn small red shards that fly outward past the border
+      const count = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        const sz = 2 + Math.random() * 4;
+        let x, y, vx, vy;
+        const spread = (Math.random() - 0.5) * 2;
+        const outSpeed = 1 + Math.random() * 2;
+        if (side === 'left') {
+          x = 0; y = pos; vx = -outSpeed; vy = spread;
+        } else if (side === 'right') {
+          x = ARENA; y = pos; vx = outSpeed; vy = spread;
+        } else if (side === 'top') {
+          x = pos; y = 0; vx = spread; vy = -outSpeed;
+        } else {
+          x = pos; y = ARENA; vx = spread; vy = outSpeed;
+        }
+        bounceParticles.push({ x, y, vx, vy, size: sz, alpha: 0.9, rot: Math.random() * Math.PI });
+      }
+    }
+
+    function updateWallEffects() {
+      for (let i = wallFlashes.length - 1; i >= 0; i--) {
+        wallFlashes[i].alpha -= 0.025;
+        if (wallFlashes[i].alpha <= 0) wallFlashes.splice(i, 1);
+      }
+      for (let i = bounceParticles.length - 1; i >= 0; i--) {
+        const p = bounceParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+        p.rot += 0.1;
+        if (p.alpha <= 0) bounceParticles.splice(i, 1);
+      }
+    }
+
     // Leaderboard (stored in localStorage)
     function getLeaderboard() {
       try {
@@ -615,6 +656,8 @@
       launched = false;
       diamond.active = false;
       particles = [];
+      wallFlashes = [];
+      bounceParticles = [];
       gameRunning = true;
       launchTime = 0;
       touchTarget = null;
@@ -698,18 +741,22 @@
         // Bounce off walls
         if (e.x <= 0) {
           e.x = 0;
+          spawnWallBounce('left', e.y + e.size / 2, Math.abs(e.vx) * speedMult);
           e.vx = Math.abs(e.vx);
         }
         if (e.x + e.size >= ARENA) {
           e.x = ARENA - e.size;
+          spawnWallBounce('right', e.y + e.size / 2, Math.abs(e.vx) * speedMult);
           e.vx = -Math.abs(e.vx);
         }
         if (e.y <= 0) {
           e.y = 0;
+          spawnWallBounce('top', e.x + e.size / 2, Math.abs(e.vy) * speedMult);
           e.vy = Math.abs(e.vy);
         }
         if (e.y + e.size >= ARENA) {
           e.y = ARENA - e.size;
+          spawnWallBounce('bottom', e.x + e.size / 2, Math.abs(e.vy) * speedMult);
           e.vy = -Math.abs(e.vy);
         }
 
@@ -758,6 +805,7 @@
       }
 
       updateParticles();
+      updateWallEffects();
     }
 
     function drawDiamond(x, y, size) {
@@ -803,6 +851,51 @@
         ctx.beginPath();
         ctx.moveTo(0, i); ctx.lineTo(ARENA, i);
         ctx.stroke();
+      }
+
+      // Wall bounce glow effects
+      for (const f of wallFlashes) {
+        ctx.save();
+        ctx.globalAlpha = f.alpha;
+        let grad;
+        const glowSize = 30;
+        if (f.side === 'left') {
+          grad = ctx.createLinearGradient(0, 0, glowSize, 0);
+          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
+          grad.addColorStop(1, 'rgba(239,68,68,0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, f.pos - 40, glowSize, 80);
+        } else if (f.side === 'right') {
+          grad = ctx.createLinearGradient(ARENA, 0, ARENA - glowSize, 0);
+          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
+          grad.addColorStop(1, 'rgba(239,68,68,0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(ARENA - glowSize, f.pos - 40, glowSize, 80);
+        } else if (f.side === 'top') {
+          grad = ctx.createLinearGradient(0, 0, 0, glowSize);
+          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
+          grad.addColorStop(1, 'rgba(239,68,68,0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(f.pos - 40, 0, 80, glowSize);
+        } else {
+          grad = ctx.createLinearGradient(0, ARENA, 0, ARENA - glowSize);
+          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
+          grad.addColorStop(1, 'rgba(239,68,68,0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(f.pos - 40, ARENA - glowSize, 80, glowSize);
+        }
+        ctx.restore();
+      }
+
+      // Bounce shards near walls
+      for (const p of bounceParticles) {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
       }
 
       // Diamond
