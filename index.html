@@ -883,11 +883,7 @@
       document.getElementById('name-input').value = savedName;
       document.getElementById('name-overlay').classList.add('visible');
       // Focus the input after a tiny delay so it works
-      setTimeout(() => {
-        const inp = document.getElementById('name-input');
-        inp.focus();
-        inp.select();
-      }, 100);
+      setTimeout(() => document.getElementById('name-submit-btn').focus(), 100);
     }
 
     function submitName() {
@@ -910,6 +906,7 @@
       document.getElementById('final-score').textContent = pendingScore;
       renderLeaderboard(lb, playerName, pendingScore);
       document.getElementById('game-over-overlay').classList.add('visible');
+      setTimeout(() => document.getElementById('play-again-btn').focus(), 100);
     }
 
     // Submit name on button click or Enter key
