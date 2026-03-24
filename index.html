@@ -382,6 +382,7 @@
       <div id="game-over-panel" class="board-panel panel-scanlines">
         <h2>LEADERBOARD</h2>
         <div class="your-score"><b id="final-name">You</b> scored <b id="final-score">0</b> points!</div>
+        <div id="final-placement" style="font-size:13px;color:rgba(59,130,246,0.5);margin-bottom:8px;"></div>
         <div id="leaderboard">
           <div class="lb-title">Top Scores</div>
           <div id="lb-entries"></div>
@@ -1763,7 +1764,7 @@
       const tempLb = [...lb, { score: pendingScore }].sort((a, b) => b.score - a.score);
       const place = tempLb.findIndex(e => e.score === pendingScore) + 1;
       const ordinal = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : place + 'th';
-      document.getElementById('name-placement').textContent = place <= 5 ? `You placed ${ordinal}!` : '';
+      document.getElementById('name-placement').textContent = `You placed ${ordinal}!`;
 
       // Play placement sound
       if (place === 1) sfxVictory();
@@ -1789,13 +1790,18 @@
       let lb = getLeaderboard();
       lb.push({ name: playerName, score: pendingScore, isPlayer: true });
       lb.sort((a, b) => b.score - a.score);
-      lb = lb.slice(0, 5);
-      saveLeaderboard(lb);
+      saveLeaderboard(lb); // keep full history for placement
 
-      // Show leaderboard screen
+      // Calculate placement against all scores
+      const finalPlace = lb.findIndex(e => e.isPlayer && e.name === playerName && e.score === pendingScore) + 1;
+      const finalOrd = finalPlace === 1 ? '1st' : finalPlace === 2 ? '2nd' : finalPlace === 3 ? '3rd' : finalPlace + 'th';
+
+      // Show leaderboard screen (display top 5 only)
+      const top5 = lb.slice(0, 5);
       document.getElementById('final-name').textContent = playerName;
       document.getElementById('final-score').textContent = pendingScore;
-      renderLeaderboard(lb, playerName, pendingScore);
+      document.getElementById('final-placement').textContent = `${finalOrd} place`;
+      renderLeaderboard(top5, playerName, pendingScore);
       document.getElementById('game-over-panel').classList.add('visible');
       setTimeout(() => document.getElementById('play-again-btn').focus(), 100);
     }
