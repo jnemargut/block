@@ -524,65 +524,71 @@
       });
     }
 
-    // --- Music: 5 techno tracks with verse/chorus structure ---
+    // --- Music engine: OP-1 vibes, 5 tracks, verse/chorus + wildcard layer ---
     let musicNodes = [];
     let lastSongIndex = -1;
 
+    // Each song: bass, lead melody, pad, and a wildcard texture
+    // Wildcard: random glitchy/melodic bits that fire semi-randomly
     const songs = [
-      { // Track 1: Dark minimal
-        bass: [55, 55, 73.4, 55, 82.4, 55, 73.4, 65.4],
-        bassType: 'sawtooth', bassCutoff: 400, bassQ: 8,
-        tempo: 250, hatTempo: 125,
-        pad: [110, 164.8, 220, 329.6], padCutoff: 600, padType: 'sawtooth',
-        arp: [330, 440, 523, 660, 523, 440, 330, 262], arpType: 'square',
-        chorusBassBoost: 200, chorusPadBoost: 300,
-        // Haunting minor lead — plays every 2 beats, 16-note phrase
-        lead: [330, 0, 294, 0, 262, 0, 294, 330, 0, 392, 349, 0, 330, 294, 0, 262],
-        leadType: 'sine', leadCutoff: 1200, leadDecay: 0.5
+      { name: 'Tape Hiss',
+        tempo: 240,
+        // Wobbly detuned bass, lo-fi
+        bass: [55, 0, 55, 65.4, 0, 55, 73.4, 0], bassType: 'sawtooth',
+        bassCutoff: 350, bassQ: 10, bassDecay: 0.2,
+        // Melody: wistful, lots of space
+        lead: [330, 0, 0, 294, 0, 349, 330, 0, 0, 0, 262, 0, 294, 330, 0, 0],
+        leadType: 'sine', leadCutoff: 1100, leadDecay: 0.55,
+        // Warm tape-saturated pad
+        pad: [110, 165, 220], padType: 'sawtooth', padCutoff: 500, padVol: 0.05,
+        // Chorus arp: bubbly rising
+        arp: [330, 392, 440, 523, 494, 440, 392, 330], arpType: 'sine',
+        // Wildcard: random pitched blips like tape artifacts
+        wild: 'blip', wildScale: [262, 294, 330, 392, 440, 523], wildProb: 0.3
       },
-      { // Track 2: Driving high-energy
-        bass: [82.4, 82.4, 110, 82.4, 98, 82.4, 73.4, 98],
-        bassType: 'square', bassCutoff: 500, bassQ: 6,
-        tempo: 200, hatTempo: 100,
-        pad: [165, 220, 330, 440], padCutoff: 500, padType: 'sawtooth',
-        arp: [440, 523, 660, 880, 660, 523, 440, 349], arpType: 'sawtooth',
-        chorusBassBoost: 250, chorusPadBoost: 400,
-        // Punchy staccato hook
-        lead: [440, 440, 0, 523, 0, 660, 523, 0, 440, 0, 349, 440, 523, 0, 660, 0],
-        leadType: 'sawtooth', leadCutoff: 1800, leadDecay: 0.25
+      { name: 'Neon Drive',
+        tempo: 195,
+        bass: [82.4, 82.4, 0, 110, 82.4, 0, 73.4, 98], bassType: 'square',
+        bassCutoff: 450, bassQ: 6, bassDecay: 0.15,
+        lead: [440, 0, 523, 440, 0, 0, 349, 392, 440, 523, 0, 660, 0, 523, 440, 0],
+        leadType: 'sawtooth', leadCutoff: 1600, leadDecay: 0.28,
+        pad: [165, 220, 330, 440], padType: 'sawtooth', padCutoff: 600, padVol: 0.04,
+        arp: [660, 784, 880, 1047, 880, 784, 660, 523], arpType: 'square',
+        // Wildcard: glitchy stutter repeats of random notes
+        wild: 'stutter', wildScale: [440, 523, 660, 784], wildProb: 0.25
       },
-      { // Track 3: Deep & moody
-        bass: [41.2, 41.2, 55, 49, 41.2, 55, 49, 36.7],
-        bassType: 'sawtooth', bassCutoff: 300, bassQ: 10,
-        tempo: 280, hatTempo: 140,
-        pad: [82.4, 123.5, 165, 247], padCutoff: 450, padType: 'triangle',
-        arp: [247, 330, 370, 494, 370, 330, 247, 196], arpType: 'triangle',
-        chorusBassBoost: 150, chorusPadBoost: 250,
-        // Slow, breathy melody
-        lead: [247, 0, 0, 220, 0, 0, 196, 0, 247, 0, 294, 0, 0, 262, 0, 0],
-        leadType: 'triangle', leadCutoff: 900, leadDecay: 0.7
+      { name: 'Deep Space',
+        tempo: 290,
+        bass: [41.2, 0, 41.2, 55, 0, 49, 0, 41.2], bassType: 'sawtooth',
+        bassCutoff: 280, bassQ: 12, bassDecay: 0.25,
+        lead: [247, 0, 0, 0, 220, 0, 0, 196, 0, 0, 247, 0, 294, 0, 0, 0],
+        leadType: 'triangle', leadCutoff: 800, leadDecay: 0.8,
+        pad: [82.4, 124, 165], padType: 'triangle', padCutoff: 400, padVol: 0.07,
+        arp: [330, 370, 440, 494, 440, 370, 330, 247], arpType: 'sine',
+        // Wildcard: random resonant pings like sonar
+        wild: 'ping', wildScale: [494, 587, 659, 784, 880], wildProb: 0.2
       },
-      { // Track 4: Agitated synth
-        bass: [110, 98, 82.4, 110, 130.8, 110, 98, 73.4],
-        bassType: 'sawtooth', bassCutoff: 600, bassQ: 4,
-        tempo: 220, hatTempo: 110,
-        pad: [220, 277, 330, 415], padCutoff: 700, padType: 'square',
-        arp: [523, 660, 784, 880, 784, 660, 523, 415], arpType: 'square',
-        chorusBassBoost: 300, chorusPadBoost: 350,
-        // Nervous, angular riff
-        lead: [523, 0, 587, 523, 0, 466, 523, 587, 0, 698, 0, 587, 523, 0, 466, 0],
-        leadType: 'square', leadCutoff: 1500, leadDecay: 0.3
+      { name: 'Circuit Breaker',
+        tempo: 210,
+        bass: [110, 110, 0, 98, 82.4, 0, 110, 131], bassType: 'sawtooth',
+        bassCutoff: 550, bassQ: 5, bassDecay: 0.14,
+        lead: [523, 0, 587, 523, 0, 466, 0, 523, 587, 0, 698, 587, 0, 523, 466, 0],
+        leadType: 'square', leadCutoff: 1400, leadDecay: 0.3,
+        pad: [220, 277, 330], padType: 'square', padCutoff: 650, padVol: 0.035,
+        arp: [523, 587, 698, 784, 698, 587, 523, 466], arpType: 'sawtooth',
+        // Wildcard: bitcrushed noise bursts
+        wild: 'crunch', wildScale: [200, 300, 400, 500, 600], wildProb: 0.35
       },
-      { // Track 5: Smooth & floating
-        bass: [65.4, 65.4, 82.4, 73.4, 65.4, 98, 82.4, 73.4],
-        bassType: 'triangle', bassCutoff: 350, bassQ: 5,
-        tempo: 300, hatTempo: 150,
-        pad: [131, 196, 262, 392], padCutoff: 550, padType: 'sine',
-        arp: [392, 523, 659, 784, 659, 523, 392, 330], arpType: 'sine',
-        chorusBassBoost: 150, chorusPadBoost: 200,
-        // Gentle, lyrical melody
-        lead: [523, 0, 587, 0, 659, 0, 587, 523, 0, 494, 0, 523, 587, 0, 0, 523],
-        leadType: 'sine', leadCutoff: 1000, leadDecay: 0.6
+      { name: 'Morning Synth',
+        tempo: 270,
+        bass: [65.4, 0, 65.4, 82.4, 73.4, 0, 65.4, 0], bassType: 'triangle',
+        bassCutoff: 320, bassQ: 5, bassDecay: 0.22,
+        lead: [523, 0, 587, 0, 659, 587, 0, 523, 0, 494, 0, 523, 587, 659, 0, 0],
+        leadType: 'sine', leadCutoff: 950, leadDecay: 0.6,
+        pad: [131, 196, 262, 392], padType: 'sine', padCutoff: 500, padVol: 0.06,
+        arp: [523, 659, 784, 880, 784, 659, 523, 440], arpType: 'triangle',
+        // Wildcard: gentle random chime harmonics
+        wild: 'chime', wildScale: [1047, 1175, 1319, 1397, 1568], wildProb: 0.2
       }
     ];
 
@@ -596,196 +602,244 @@
     function startMusic() {
       if (!audioCtx || musicPlaying) return;
       musicPlaying = true;
-      const song = pickSong();
+      const s = pickSong();
+      const sectionLen = 16;
+      let gStep = 0;
+      const chorus = () => (Math.floor(gStep / sectionLen) % 2) === 1;
 
-      // Section tracking: verse (16 beats) → chorus (16 beats) → repeat
-      const sectionLength = 16; // beats per section
-      let globalStep = 0;
-
-      function isChorus() {
-        return (Math.floor(globalStep / sectionLength) % 2) === 1;
-      }
-
-      // Persistent filter nodes for sweeping
+      // --- Layer 1: Bass ---
       const bassFilter = audioCtx.createBiquadFilter();
       bassFilter.type = 'lowpass';
-      bassFilter.frequency.value = song.bassCutoff;
-      bassFilter.Q.value = song.bassQ;
+      bassFilter.frequency.value = s.bassCutoff;
+      bassFilter.Q.value = s.bassQ;
       bassFilter.connect(musicGain);
+      let bStep = 0, lastSec = -1;
+      function tickBass() {
+        if (!musicPlaying) return;
+        const ch = chorus();
+        const sec = Math.floor(gStep / sectionLen);
+        if (sec !== lastSec) {
+          lastSec = sec;
+          bassFilter.frequency.setTargetAtTime(ch ? s.bassCutoff + 200 : s.bassCutoff, audioCtx.currentTime, 0.4);
+          padFilter.frequency.setTargetAtTime(ch ? s.padCutoff + 250 : s.padCutoff, audioCtx.currentTime, 0.4);
+          padGains.forEach(g => g.gain.setTargetAtTime(ch ? s.padVol * 1.5 : s.padVol, audioCtx.currentTime, 0.4));
+        }
+        const freq = s.bass[bStep % s.bass.length];
+        if (freq > 0) {
+          const o = audioCtx.createOscillator();
+          const e = audioCtx.createGain();
+          o.type = s.bassType;
+          o.frequency.value = freq;
+          o.detune.value = Math.sin(gStep * 0.2) * 8; // subtle wobble
+          e.gain.setValueAtTime(ch ? 0.38 : 0.32, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.bassDecay);
+          o.connect(e); e.connect(bassFilter);
+          o.start(); o.stop(audioCtx.currentTime + s.bassDecay + 0.02);
+        }
+        bStep++; gStep++;
+        musicNodes.push(setTimeout(tickBass, s.tempo));
+      }
 
-      // Pad nodes (persistent, filter sweeps on chorus)
-      const padGains = [];
+      // --- Layer 2: Lead melody ---
+      let lStep = 0;
+      function tickLead() {
+        if (!musicPlaying) return;
+        const freq = s.lead[lStep % s.lead.length];
+        if (freq > 0) {
+          const ch = chorus();
+          const o = audioCtx.createOscillator();
+          const e = audioCtx.createGain();
+          const f = audioCtx.createBiquadFilter();
+          o.type = s.leadType;
+          o.frequency.value = freq;
+          o.detune.value = Math.random() * 8 - 4;
+          f.type = 'lowpass';
+          f.frequency.value = ch ? s.leadCutoff * 1.4 : s.leadCutoff;
+          f.Q.value = 1.5;
+          const vol = ch ? 0.13 : 0.065;
+          e.gain.setValueAtTime(vol, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.leadDecay);
+          o.connect(f); f.connect(e); e.connect(musicGain);
+          o.start(); o.stop(audioCtx.currentTime + s.leadDecay + 0.05);
+        }
+        lStep++;
+        musicNodes.push(setTimeout(tickLead, s.tempo));
+      }
+
+      // --- Layer 3: Pad + hats + kick ---
       const padFilter = audioCtx.createBiquadFilter();
       padFilter.type = 'lowpass';
-      padFilter.frequency.value = song.padCutoff;
+      padFilter.frequency.value = s.padCutoff;
       padFilter.Q.value = 2;
       padFilter.connect(musicGain);
-
-      song.pad.forEach(f => {
-        const osc = audioCtx.createOscillator();
-        osc.type = song.padType;
-        osc.frequency.value = f;
-        osc.detune.value = Math.random() * 10 - 5;
-        const gain = audioCtx.createGain();
-        gain.gain.value = 0.06;
-        osc.connect(gain);
-        gain.connect(padFilter);
-        osc.start();
-        padGains.push(gain);
+      const padGains = [];
+      s.pad.forEach(freq => {
+        const o = audioCtx.createOscillator();
+        o.type = s.padType;
+        o.frequency.value = freq;
+        o.detune.value = Math.random() * 12 - 6;
+        const g = audioCtx.createGain();
+        g.gain.value = s.padVol;
+        o.connect(g); g.connect(padFilter);
+        o.start(); padGains.push(g);
         musicNodes.push({ stop: () => {
-          gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-          osc.stop(audioCtx.currentTime + 0.3);
+          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+          o.stop(audioCtx.currentTime + 0.3);
         }});
       });
 
-      // Lead melody — plays throughout, quieter in verse, louder in chorus
-      let leadStep = 0;
-      function scheduleLead() {
+      // Hats
+      let hStep = 0;
+      function tickHat() {
         if (!musicPlaying) return;
-        const freq = song.lead[leadStep % song.lead.length];
-        if (freq > 0) {
-          const chorus = isChorus();
-          const osc = audioCtx.createOscillator();
-          const env = audioCtx.createGain();
-          const filter = audioCtx.createBiquadFilter();
-          osc.type = song.leadType;
-          osc.frequency.value = freq;
-          osc.detune.value = Math.random() * 6 - 3;
-          filter.type = 'lowpass';
-          filter.frequency.value = chorus ? song.leadCutoff * 1.5 : song.leadCutoff;
-          filter.Q.value = 1.5;
-          const vol = chorus ? 0.14 : 0.07;
-          env.gain.setValueAtTime(vol, audioCtx.currentTime);
-          env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + song.leadDecay);
-          osc.connect(filter);
-          filter.connect(env);
-          env.connect(musicGain);
-          osc.start();
-          osc.stop(audioCtx.currentTime + song.leadDecay + 0.05);
-        }
-        leadStep++;
-        musicNodes.push(setTimeout(scheduleLead, song.tempo));
-      }
-      scheduleLead();
-
-      // Arp lead (only during chorus)
-      let arpStep = 0;
-      function scheduleArp() {
-        if (!musicPlaying) return;
-        if (isChorus()) {
-          const freq = song.arp[arpStep % song.arp.length];
-          const osc = audioCtx.createOscillator();
-          const env = audioCtx.createGain();
-          const filter = audioCtx.createBiquadFilter();
-          osc.type = song.arpType;
-          osc.frequency.value = freq;
-          filter.type = 'lowpass';
-          filter.frequency.value = 2000;
-          filter.Q.value = 3;
-          env.gain.setValueAtTime(0.12, audioCtx.currentTime);
-          env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + song.tempo / 1200);
-          osc.connect(filter);
-          filter.connect(env);
-          env.connect(musicGain);
-          osc.start();
-          osc.stop(audioCtx.currentTime + song.tempo / 1000);
-          arpStep++;
-        }
-        musicNodes.push(setTimeout(scheduleArp, song.tempo / 2));
-      }
-      scheduleArp();
-
-      // Kick drum (chorus only, every beat)
-      function scheduleKick() {
-        if (!musicPlaying) return;
-        if (isChorus()) {
-          const osc = audioCtx.createOscillator();
-          const env = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
-          env.gain.setValueAtTime(0.3, audioCtx.currentTime);
-          env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-          osc.connect(env);
-          env.connect(musicGain);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.16);
-        }
-        musicNodes.push(setTimeout(scheduleKick, song.tempo));
-      }
-      scheduleKick();
-
-      // Bass sequence (with filter sweep on section changes)
-      let bassStep = 0;
-      let lastSection = -1;
-      function scheduleBass() {
-        if (!musicPlaying) return;
-        const chorus = isChorus();
-        const section = Math.floor(globalStep / sectionLength);
-
-        // Sweep filters on section change
-        if (section !== lastSection) {
-          lastSection = section;
-          const targetBassCutoff = chorus ? song.bassCutoff + song.chorusBassBoost : song.bassCutoff;
-          const targetPadCutoff = chorus ? song.padCutoff + song.chorusPadBoost : song.padCutoff;
-          bassFilter.frequency.setTargetAtTime(targetBassCutoff, audioCtx.currentTime, 0.5);
-          padFilter.frequency.setTargetAtTime(targetPadCutoff, audioCtx.currentTime, 0.5);
-          // Swell pad volume during chorus
-          const padVol = chorus ? 0.09 : 0.06;
-          padGains.forEach(g => g.gain.setTargetAtTime(padVol, audioCtx.currentTime, 0.5));
-        }
-
-        const osc = audioCtx.createOscillator();
-        const env = audioCtx.createGain();
-        osc.type = song.bassType;
-        osc.frequency.value = song.bass[bassStep % song.bass.length];
-        const bassVol = chorus ? 0.4 : 0.35;
-        env.gain.setValueAtTime(bassVol, audioCtx.currentTime);
-        env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-        osc.connect(bassFilter);
-
-        // Bass goes through shared filter but needs its own envelope
-        const envOut = audioCtx.createGain();
-        envOut.gain.value = 1;
-        osc.connect(env);
-        env.connect(bassFilter);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
-        bassStep++;
-        globalStep++;
-        musicNodes.push(setTimeout(scheduleBass, song.tempo));
-      }
-      scheduleBass();
-
-      // Hi-hat pattern (double-time during chorus)
-      let hatStep = 0;
-      function scheduleHat() {
-        if (!musicPlaying) return;
-        const chorus = isChorus();
-        const accent = hatStep % 4 === 0 ? 0.12 : (chorus ? 0.07 : 0.05);
-        const bufSize = audioCtx.sampleRate * 0.04;
-        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-        const data = buf.getChannelData(0);
-        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
-        const src = audioCtx.createBufferSource();
-        src.buffer = buf;
-        const env = audioCtx.createGain();
-        env.gain.setValueAtTime(accent, audioCtx.currentTime);
-        env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        const ch = chorus();
+        // Swing: slight timing variation
+        const swing = hStep % 2 === 1 ? s.tempo * 0.04 : 0;
+        const accent = hStep % 4 === 0 ? 0.11 : (hStep % 2 === 0 ? 0.06 : 0.035);
+        const vol = ch ? accent * 1.3 : accent;
+        const len = 0.035;
+        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src = audioCtx.createBufferSource(); src.buffer = buf;
+        const e = audioCtx.createGain();
+        e.gain.setValueAtTime(vol, audioCtx.currentTime);
+        e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
         const hp = audioCtx.createBiquadFilter();
-        hp.type = 'highpass';
-        hp.frequency.value = 8000;
-        src.connect(hp);
-        hp.connect(env);
-        env.connect(musicGain);
-        src.start();
-        src.stop(audioCtx.currentTime + 0.05);
-        hatStep++;
-        // Hats go double-time in chorus
-        const hatInterval = chorus ? song.hatTempo * 0.5 : song.hatTempo;
-        musicNodes.push(setTimeout(scheduleHat, hatInterval));
+        hp.type = 'highpass'; hp.frequency.value = ch ? 7000 : 9000;
+        src.connect(hp); hp.connect(e); e.connect(musicGain);
+        src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+        hStep++;
+        const interval = ch ? s.tempo * 0.25 : s.tempo * 0.5;
+        musicNodes.push(setTimeout(tickHat, interval + swing));
       }
-      scheduleHat();
+
+      // Kick (chorus)
+      function tickKick() {
+        if (!musicPlaying) return;
+        if (chorus()) {
+          const o = audioCtx.createOscillator();
+          const e = audioCtx.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(140, audioCtx.currentTime);
+          o.frequency.exponentialRampToValueAtTime(28, audioCtx.currentTime + 0.1);
+          e.gain.setValueAtTime(0.28, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.14);
+          o.connect(e); e.connect(musicGain);
+          o.start(); o.stop(audioCtx.currentTime + 0.15);
+        }
+        musicNodes.push(setTimeout(tickKick, s.tempo));
+      }
+
+      // Chorus arp
+      let aStep = 0;
+      function tickArp() {
+        if (!musicPlaying) return;
+        if (chorus()) {
+          const freq = s.arp[aStep % s.arp.length];
+          const o = audioCtx.createOscillator();
+          const e = audioCtx.createGain();
+          const f = audioCtx.createBiquadFilter();
+          o.type = s.arpType;
+          o.frequency.value = freq;
+          f.type = 'lowpass'; f.frequency.value = 1800; f.Q.value = 3;
+          e.gain.setValueAtTime(0.09, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.tempo / 1300);
+          o.connect(f); f.connect(e); e.connect(musicGain);
+          o.start(); o.stop(audioCtx.currentTime + s.tempo / 1000);
+          aStep++;
+        }
+        musicNodes.push(setTimeout(tickArp, s.tempo / 2));
+      }
+
+      // --- Layer 4: Wildcard / texture ---
+      function tickWild() {
+        if (!musicPlaying) return;
+        // Semi-random timing: fires at random intervals
+        const next = s.tempo * (0.5 + Math.random() * 2);
+        if (Math.random() < s.wildProb) {
+          const freq = s.wildScale[Math.floor(Math.random() * s.wildScale.length)];
+          const ch = chorus();
+          const vol = ch ? 0.09 : 0.05;
+
+          if (s.wild === 'blip') {
+            // Short pitched blip with random detune — tape artifact feel
+            const o = audioCtx.createOscillator();
+            const e = audioCtx.createGain();
+            o.type = 'sine';
+            o.frequency.value = freq;
+            o.detune.value = Math.random() * 40 - 20;
+            e.gain.setValueAtTime(vol, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+            o.connect(e); e.connect(musicGain);
+            o.start(); o.stop(audioCtx.currentTime + 0.1);
+          } else if (s.wild === 'stutter') {
+            // Rapid 3-hit stutter of same note
+            for (let i = 0; i < 3; i++) {
+              setTimeout(() => {
+                if (!musicPlaying) return;
+                const o = audioCtx.createOscillator();
+                const e = audioCtx.createGain();
+                o.type = 'square';
+                o.frequency.value = freq;
+                const f = audioCtx.createBiquadFilter();
+                f.type = 'lowpass'; f.frequency.value = 1200;
+                e.gain.setValueAtTime(vol * 0.7, audioCtx.currentTime);
+                e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                o.connect(f); f.connect(e); e.connect(musicGain);
+                o.start(); o.stop(audioCtx.currentTime + 0.05);
+              }, i * 55);
+            }
+          } else if (s.wild === 'ping') {
+            // High resonant ping — sonar in deep space
+            const o = audioCtx.createOscillator();
+            const e = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            o.type = 'sine';
+            o.frequency.value = freq;
+            f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 20;
+            e.gain.setValueAtTime(vol * 0.6, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+            o.connect(f); f.connect(e); e.connect(musicGain);
+            o.start(); o.stop(audioCtx.currentTime + 0.55);
+          } else if (s.wild === 'crunch') {
+            // Short noise burst through bandpass — digital grit
+            const len = 0.06;
+            const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+            const d = buf.getChannelData(0);
+            // Bitcrushed noise: quantize
+            for (let i = 0; i < d.length; i++) {
+              const raw = Math.random() * 2 - 1;
+              d[i] = Math.round(raw * 4) / 4;
+            }
+            const src = audioCtx.createBufferSource(); src.buffer = buf;
+            const e = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 8;
+            e.gain.setValueAtTime(vol, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+            src.connect(f); f.connect(e); e.connect(musicGain);
+            src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+          } else if (s.wild === 'chime') {
+            // Gentle harmonic chime — two detuned sines
+            [0, 7].forEach(det => {
+              const o = audioCtx.createOscillator();
+              const e = audioCtx.createGain();
+              o.type = 'sine';
+              o.frequency.value = freq;
+              o.detune.value = det;
+              e.gain.setValueAtTime(vol * 0.5, audioCtx.currentTime);
+              e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+              o.connect(e); e.connect(musicGain);
+              o.start(); o.stop(audioCtx.currentTime + 0.45);
+            });
+          }
+        }
+        musicNodes.push(setTimeout(tickWild, next));
+      }
+
+      // Start all layers
+      tickBass(); tickLead(); tickHat(); tickKick(); tickArp(); tickWild();
     }
 
     function stopMusic() {
