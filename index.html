@@ -38,6 +38,21 @@
       max-width: calc(100vw - 24px);
       max-height: calc(100vw - 24px);
     }
+    #zoom-lens {
+      display: none;
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 2.5px solid #94a3b8;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      z-index: 50;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #zoom-lens.visible { display: block; }
     #instructions {
       font-size: 13px;
       color: #94a3b8;
@@ -295,6 +310,9 @@
     </div>
   </div>
 
+  <!-- Zoom Lens (off-canvas, top-left) -->
+  <canvas id="zoom-lens" width="110" height="110"></canvas>
+
   <!-- Game -->
   <div id="game-wrapper">
     <div id="score-display">Score: <span id="score">0</span></div>
@@ -472,15 +490,11 @@
     });
     window.addEventListener('keyup', e => { keys[e.key] = false; });
 
-    // Zoom lens (offscreen canvas for sampling)
-    const lensCanvas = document.createElement('canvas');
-    lensCanvas.width = ARENA;
-    lensCanvas.height = ARENA;
-    const lensCtx = lensCanvas.getContext('2d');
-    const LENS_RADIUS = 48;
-    const LENS_ZOOM = 2.8;
-    const LENS_CX = 14 + LENS_RADIUS; // circle center in canvas coords
-    const LENS_CY = 14 + LENS_RADIUS;
+    // Zoom lens (separate off-canvas element)
+    const lensEl = document.getElementById('zoom-lens');
+    const lensCtx = lensEl.getContext('2d');
+    const LENS_SIZE = 110;
+    const LENS_ZOOM = 1.6; // how much to zoom in (lower = more zoomed out)
 
     // Touch controls — move toward where you touch/hold
     let touchTarget = null; // {x, y} in canvas coordinates, or null
@@ -792,50 +806,36 @@
         ctx.fill();
       }
 
-      // Zoom lens for touch controls — shows magnified area around player
+      // Zoom lens — draw to off-canvas element, centered on touch target
       if (touchTarget && launched) {
-        // Copy what we've drawn so far to the offscreen canvas
-        lensCtx.clearRect(0, 0, ARENA, ARENA);
-        lensCtx.drawImage(canvas, 0, 0);
+        lensEl.classList.add('visible');
 
-        // Source region centered on player
-        const pcx = player.x + player.size / 2;
-        const pcy = player.y + player.size / 2;
-        const srcHalf = LENS_RADIUS / LENS_ZOOM;
+        const half = LENS_SIZE / 2;
+        const srcHalf = half / LENS_ZOOM;
 
-        ctx.save();
-
-        // Dim background behind lens for contrast
-        ctx.beginPath();
-        ctx.arc(LENS_CX, LENS_CY, LENS_RADIUS + 3, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fill();
+        lensCtx.clearRect(0, 0, LENS_SIZE, LENS_SIZE);
+        lensCtx.save();
 
         // Clip to circle
-        ctx.beginPath();
-        ctx.arc(LENS_CX, LENS_CY, LENS_RADIUS, 0, Math.PI * 2);
-        ctx.clip();
+        lensCtx.beginPath();
+        lensCtx.arc(half, half, half, 0, Math.PI * 2);
+        lensCtx.clip();
 
-        // Draw zoomed portion from offscreen copy
-        ctx.drawImage(lensCanvas,
-          pcx - srcHalf, pcy - srcHalf, srcHalf * 2, srcHalf * 2,
-          LENS_CX - LENS_RADIUS, LENS_CY - LENS_RADIUS, LENS_RADIUS * 2, LENS_RADIUS * 2
+        // Draw zoomed portion of game canvas centered on touch target
+        lensCtx.drawImage(canvas,
+          touchTarget.x - srcHalf, touchTarget.y - srcHalf, srcHalf * 2, srcHalf * 2,
+          0, 0, LENS_SIZE, LENS_SIZE
         );
 
-        ctx.restore();
+        // Crosshair dot
+        lensCtx.beginPath();
+        lensCtx.arc(half, half, 2.5, 0, Math.PI * 2);
+        lensCtx.fillStyle = 'rgba(59, 130, 246, 0.6)';
+        lensCtx.fill();
 
-        // Border ring
-        ctx.beginPath();
-        ctx.arc(LENS_CX, LENS_CY, LENS_RADIUS, 0, Math.PI * 2);
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-
-        // Crosshair dot in center of lens
-        ctx.beginPath();
-        ctx.arc(LENS_CX, LENS_CY, 2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.5)';
-        ctx.fill();
+        lensCtx.restore();
+      } else {
+        lensEl.classList.remove('visible');
       }
 
       // Speed indicator + enemy count
