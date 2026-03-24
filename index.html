@@ -471,7 +471,7 @@
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       const src = audioCtx.createBufferSource(); src.buffer = buf;
       const e = audioCtx.createGain();
-      const vol = 0.03 + Math.random() * 0.02;
+      const vol = 0.08 + Math.random() * 0.04;
       e.gain.setValueAtTime(vol, audioCtx.currentTime);
       e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
       const lp = audioCtx.createBiquadFilter();
@@ -853,12 +853,12 @@
 
         o.type = 'sine'; o.frequency.value = freq;
         filter.type = 'lowpass'; filter.frequency.value = 500;
-        g.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.12, audioCtx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
 
         delay.delayTime.value = 0.4;
-        feedback.gain.value = 0.25;
-        delayGain.gain.value = 0.04;
+        feedback.gain.value = 0.3;
+        delayGain.gain.value = 0.08;
 
         o.connect(filter);
         filter.connect(g);
