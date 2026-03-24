@@ -74,6 +74,8 @@
       box-shadow: 0 0 20px rgba(59,130,246,0.08), 0 4px 24px rgba(0,0,0,0.3);
       max-width: calc(100vw - 24px);
       max-height: calc(100vw - 24px);
+      border-style: solid;
+      border-width: 2px;
     }
     .impact-burst {
       position: absolute;
@@ -1053,15 +1055,17 @@
         if (p.alpha <= 0) bounceParticles.splice(i, 1);
       }
       // Fade and apply per-side border glow
-      const defaultBorder = 'rgba(59,130,246,0.25)';
-      const bProp = s => 'border' + s.charAt(0).toUpperCase() + s.slice(1) + 'Color';
       for (const side of ['top', 'right', 'bottom', 'left']) {
         borderGlows[side] *= 0.88;
         if (borderGlows[side] < 0.01) borderGlows[side] = 0;
         const g = borderGlows[side];
-        canvas.style[bProp(side)] = g > 0
-          ? `rgba(239,68,68,${Math.min(1, g * 1.5).toFixed(2)})`
-          : defaultBorder;
+        // Blend from blue default to red on impact
+        const r = Math.round(59 + g * (239 - 59));
+        const gr = Math.round(130 + g * (68 - 130));
+        const b = Math.round(246 + g * (68 - 246));
+        const a = (0.25 + g * 0.75).toFixed(2);
+        const prop = 'border' + side.charAt(0).toUpperCase() + side.slice(1) + 'Color';
+        canvas.style[prop] = `rgba(${r},${gr},${b},${a})`;
       }
     }
 
