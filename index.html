@@ -201,7 +201,6 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      overflow-y: auto;
     }
     .board-panel.visible { display: flex; }
     .board-panel h1, .board-panel h2 {
@@ -259,54 +258,51 @@
     /* Leaderboard inside panel */
     #leaderboard {
       text-align: left;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       width: 100%;
-      max-width: 280px;
+      max-width: 260px;
     }
     #leaderboard .lb-title {
-      font-size: 10px;
-      color: rgba(59,130,246,0.4);
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      margin-bottom: 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid rgba(59,130,246,0.1);
+      display: none;
     }
     .lb-entry {
       display: flex;
       align-items: center;
       font-size: 13px;
-      color: rgba(255,255,255,0.4);
-      padding: 6px 8px;
-      margin-bottom: 2px;
+      color: rgba(255,255,255,0.35);
+      padding: 5px 8px;
+      margin-bottom: 1px;
       border-radius: 4px;
       background: transparent;
-      transition: background 0.15s;
     }
-    .lb-entry:nth-child(1) { background: rgba(59,130,246,0.08); }
-    .lb-entry:nth-child(2) { background: rgba(59,130,246,0.04); }
-    .lb-entry:nth-child(3) { background: rgba(59,130,246,0.02); }
+    .lb-entry:nth-child(1) {
+      background: rgba(59,130,246,0.1);
+      color: rgba(255,255,255,0.7);
+    }
+    .lb-entry:nth-child(2) { background: rgba(59,130,246,0.05); color: rgba(255,255,255,0.5); }
+    .lb-entry:nth-child(3) { background: rgba(59,130,246,0.03); color: rgba(255,255,255,0.45); }
     .lb-entry.you {
       color: #3b82f6;
       font-weight: 700;
-      background: rgba(59,130,246,0.12);
+      background: rgba(59,130,246,0.15);
       text-shadow: 0 0 8px rgba(59,130,246,0.3);
       border-left: 2px solid #3b82f6;
     }
     .lb-entry .lb-rank {
-      width: 28px;
+      width: 24px;
       flex-shrink: 0;
       font-size: 11px;
-      color: rgba(59,130,246,0.4);
+      color: rgba(59,130,246,0.35);
       font-weight: 700;
     }
+    .lb-entry:nth-child(1) .lb-rank { color: rgba(59,130,246,0.6); }
     .lb-entry.you .lb-rank { color: #3b82f6; }
     .lb-entry .lb-name { flex: 1; }
     .lb-entry .lb-score {
       font-weight: 700;
-      min-width: 30px;
+      min-width: 28px;
       text-align: right;
-      font-size: 14px;
+      font-size: 13px;
       letter-spacing: 1px;
     }
 
@@ -1766,7 +1762,7 @@
       const tempLb = [...lb, { score: pendingScore }].sort((a, b) => b.score - a.score);
       const place = tempLb.findIndex(e => e.score === pendingScore) + 1;
       const ordinal = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : place + 'th';
-      document.getElementById('name-placement').textContent = place <= 10 ? `You placed ${ordinal}!` : '';
+      document.getElementById('name-placement').textContent = place <= 5 ? `You placed ${ordinal}!` : '';
 
       // Play placement sound
       if (place === 1) sfxVictory();
@@ -1792,7 +1788,7 @@
       let lb = getLeaderboard();
       lb.push({ name: playerName, score: pendingScore, isPlayer: true });
       lb.sort((a, b) => b.score - a.score);
-      lb = lb.slice(0, 10);
+      lb = lb.slice(0, 5);
       saveLeaderboard(lb);
 
       // Show leaderboard screen
