@@ -535,7 +535,10 @@
         tempo: 250, hatTempo: 125,
         pad: [110, 164.8, 220, 329.6], padCutoff: 600, padType: 'sawtooth',
         arp: [330, 440, 523, 660, 523, 440, 330, 262], arpType: 'square',
-        chorusBassBoost: 200, chorusPadBoost: 300
+        chorusBassBoost: 200, chorusPadBoost: 300,
+        // Haunting minor lead — plays every 2 beats, 16-note phrase
+        lead: [330, 0, 294, 0, 262, 0, 294, 330, 0, 392, 349, 0, 330, 294, 0, 262],
+        leadType: 'sine', leadCutoff: 1200, leadDecay: 0.5
       },
       { // Track 2: Driving high-energy
         bass: [82.4, 82.4, 110, 82.4, 98, 82.4, 73.4, 98],
@@ -543,7 +546,10 @@
         tempo: 200, hatTempo: 100,
         pad: [165, 220, 330, 440], padCutoff: 500, padType: 'sawtooth',
         arp: [440, 523, 660, 880, 660, 523, 440, 349], arpType: 'sawtooth',
-        chorusBassBoost: 250, chorusPadBoost: 400
+        chorusBassBoost: 250, chorusPadBoost: 400,
+        // Punchy staccato hook
+        lead: [440, 440, 0, 523, 0, 660, 523, 0, 440, 0, 349, 440, 523, 0, 660, 0],
+        leadType: 'sawtooth', leadCutoff: 1800, leadDecay: 0.25
       },
       { // Track 3: Deep & moody
         bass: [41.2, 41.2, 55, 49, 41.2, 55, 49, 36.7],
@@ -551,7 +557,10 @@
         tempo: 280, hatTempo: 140,
         pad: [82.4, 123.5, 165, 247], padCutoff: 450, padType: 'triangle',
         arp: [247, 330, 370, 494, 370, 330, 247, 196], arpType: 'triangle',
-        chorusBassBoost: 150, chorusPadBoost: 250
+        chorusBassBoost: 150, chorusPadBoost: 250,
+        // Slow, breathy melody
+        lead: [247, 0, 0, 220, 0, 0, 196, 0, 247, 0, 294, 0, 0, 262, 0, 0],
+        leadType: 'triangle', leadCutoff: 900, leadDecay: 0.7
       },
       { // Track 4: Agitated synth
         bass: [110, 98, 82.4, 110, 130.8, 110, 98, 73.4],
@@ -559,7 +568,10 @@
         tempo: 220, hatTempo: 110,
         pad: [220, 277, 330, 415], padCutoff: 700, padType: 'square',
         arp: [523, 660, 784, 880, 784, 660, 523, 415], arpType: 'square',
-        chorusBassBoost: 300, chorusPadBoost: 350
+        chorusBassBoost: 300, chorusPadBoost: 350,
+        // Nervous, angular riff
+        lead: [523, 0, 587, 523, 0, 466, 523, 587, 0, 698, 0, 587, 523, 0, 466, 0],
+        leadType: 'square', leadCutoff: 1500, leadDecay: 0.3
       },
       { // Track 5: Smooth & floating
         bass: [65.4, 65.4, 82.4, 73.4, 65.4, 98, 82.4, 73.4],
@@ -567,7 +579,10 @@
         tempo: 300, hatTempo: 150,
         pad: [131, 196, 262, 392], padCutoff: 550, padType: 'sine',
         arp: [392, 523, 659, 784, 659, 523, 392, 330], arpType: 'sine',
-        chorusBassBoost: 150, chorusPadBoost: 200
+        chorusBassBoost: 150, chorusPadBoost: 200,
+        // Gentle, lyrical melody
+        lead: [523, 0, 587, 0, 659, 0, 587, 523, 0, 494, 0, 523, 587, 0, 0, 523],
+        leadType: 'sine', leadCutoff: 1000, leadDecay: 0.6
       }
     ];
 
@@ -622,6 +637,36 @@
           osc.stop(audioCtx.currentTime + 0.3);
         }});
       });
+
+      // Lead melody — plays throughout, quieter in verse, louder in chorus
+      let leadStep = 0;
+      function scheduleLead() {
+        if (!musicPlaying) return;
+        const freq = song.lead[leadStep % song.lead.length];
+        if (freq > 0) {
+          const chorus = isChorus();
+          const osc = audioCtx.createOscillator();
+          const env = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+          osc.type = song.leadType;
+          osc.frequency.value = freq;
+          osc.detune.value = Math.random() * 6 - 3;
+          filter.type = 'lowpass';
+          filter.frequency.value = chorus ? song.leadCutoff * 1.5 : song.leadCutoff;
+          filter.Q.value = 1.5;
+          const vol = chorus ? 0.14 : 0.07;
+          env.gain.setValueAtTime(vol, audioCtx.currentTime);
+          env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + song.leadDecay);
+          osc.connect(filter);
+          filter.connect(env);
+          env.connect(musicGain);
+          osc.start();
+          osc.stop(audioCtx.currentTime + song.leadDecay + 0.05);
+        }
+        leadStep++;
+        musicNodes.push(setTimeout(scheduleLead, song.tempo));
+      }
+      scheduleLead();
 
       // Arp lead (only during chorus)
       let arpStep = 0;
