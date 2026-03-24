@@ -262,7 +262,7 @@
       <p>Move your <b style="color:#3b82f6">blue square</b> into the <b style="color:#ef4444">red square</b> to launch it!</p>
       <p>Then <b>dodge</b> the bouncing red square and collect <b style="color:#eab308">diamonds</b> to score points.</p>
       <p>The longer you survive, the faster it gets! Every <b>5 diamonds</b>, a new red block appears!</p>
-      <div class="hint">Use arrow keys to move</div>
+      <div class="hint">Arrow keys or tap screen edges to move</div>
       <button id="start-btn">Play!</button>
     </div>
   </div>
@@ -297,7 +297,7 @@
   <div id="game-wrapper">
     <div id="score-display">Score: <span id="score">0</span></div>
     <canvas id="game-canvas"></canvas>
-    <div id="instructions">Arrow keys to move</div>
+    <div id="instructions">Arrow keys or tap screen edges to move</div>
   </div>
 
   <script>
@@ -469,6 +469,59 @@
       }
     });
     window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    // Touch controls — tap regions on screen edges
+    (function setupTouchControls() {
+      function getTouchDirection(tx, ty) {
+        const rect = canvas.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = tx - cx;
+        const dy = ty - cy;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          return dx > 0 ? 'ArrowRight' : 'ArrowLeft';
+        } else {
+          return dy > 0 ? 'ArrowDown' : 'ArrowUp';
+        }
+      }
+
+      const activeTouches = {};
+
+      window.addEventListener('touchstart', e => {
+        // Don't hijack touches on UI buttons/inputs
+        if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay')) return;
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          const dir = getTouchDirection(t.clientX, t.clientY);
+          activeTouches[t.identifier] = dir;
+          keys[dir] = true;
+        }
+      }, { passive: false });
+
+      window.addEventListener('touchmove', e => {
+        if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay')) return;
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          const oldDir = activeTouches[t.identifier];
+          const newDir = getTouchDirection(t.clientX, t.clientY);
+          if (oldDir && oldDir !== newDir) {
+            keys[oldDir] = false;
+          }
+          activeTouches[t.identifier] = newDir;
+          keys[newDir] = true;
+        }
+      }, { passive: false });
+
+      function endTouch(e) {
+        for (const t of e.changedTouches) {
+          const dir = activeTouches[t.identifier];
+          if (dir) keys[dir] = false;
+          delete activeTouches[t.identifier];
+        }
+      }
+      window.addEventListener('touchend', endTouch);
+      window.addEventListener('touchcancel', endTouch);
+    })();
 
     // Start button
     document.getElementById('start-btn').addEventListener('click', () => {
