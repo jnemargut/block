@@ -406,7 +406,7 @@
       if (audioCtx) return;
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       musicGain = audioCtx.createGain();
-      musicGain.gain.value = 0.25;
+      musicGain.gain.value = 0.7;
       musicGain.connect(audioCtx.destination);
       sfxGain = audioCtx.createGain();
       sfxGain.gain.value = 0.4;
@@ -417,7 +417,7 @@
     function updateAudioMute() {
       if (!audioCtx) return;
       const vol = soundEnabled ? 1 : 0;
-      musicGain.gain.setTargetAtTime(soundEnabled ? 0.25 : 0, audioCtx.currentTime, 0.05);
+      musicGain.gain.setTargetAtTime(soundEnabled ? 0.7 : 0, audioCtx.currentTime, 0.05);
       sfxGain.gain.setTargetAtTime(soundEnabled ? 0.4 : 0, audioCtx.currentTime, 0.05);
     }
 
@@ -536,45 +536,43 @@
 
     const songs = [
       { name: 'Warehouse',
-        // Heavy pulsing saw bass
-        bass: [55, 55, 0, 55, 55, 0, 73.4, 0], bassType: 'sawtooth', bassCutoff: 250, bassQ: 12,
+        bass: [55, 55, 0, 55, 55, 0, 73.4, 0], bassType: 'sawtooth', bassCutoff: 500, bassQ: 8,
         lead: [330, 0, 0, 294, 0, 0, 262, 0, 294, 330, 0, 0, 349, 0, 330, 0],
-        leadType: 'square', leadCutoff: 900, leadDecay: 0.3,
-        pad: [55, 82.4, 110], padType: 'sawtooth', padCutoff: 300, padVol: 0.04,
-        // Stab: sparse minor chord hits
-        stab: [220, 262, 330], stabProb: 0.2,
+        leadType: 'square', leadCutoff: 1400, leadDecay: 0.25,
+        pad: [55, 82.4, 110], padType: 'sawtooth', padCutoff: 500, padVol: 0.08,
+        stab: [220, 262, 330], stabProb: 0.22,
         wild: 'blip', wildScale: [220, 262, 294, 330, 392]
       },
       { name: 'Bunker',
-        bass: [82.4, 0, 82.4, 82.4, 0, 73.4, 82.4, 0], bassType: 'square', bassCutoff: 300, bassQ: 8,
+        bass: [82.4, 0, 82.4, 82.4, 0, 73.4, 82.4, 0], bassType: 'sawtooth', bassCutoff: 550, bassQ: 6,
         lead: [440, 0, 0, 392, 0, 349, 0, 0, 392, 440, 0, 0, 523, 0, 440, 0],
-        leadType: 'sawtooth', leadCutoff: 1100, leadDecay: 0.2,
-        pad: [82.4, 110, 165], padType: 'sawtooth', padCutoff: 350, padVol: 0.04,
-        stab: [330, 392, 523], stabProb: 0.18,
+        leadType: 'sawtooth', leadCutoff: 1600, leadDecay: 0.18,
+        pad: [82.4, 110, 165], padType: 'sawtooth', padCutoff: 550, padVol: 0.07,
+        stab: [330, 392, 523], stabProb: 0.2,
         wild: 'stutter', wildScale: [330, 392, 440, 523]
       },
       { name: 'Abyss',
-        bass: [41.2, 41.2, 0, 41.2, 55, 0, 49, 0], bassType: 'sawtooth', bassCutoff: 200, bassQ: 14,
+        bass: [41.2, 41.2, 0, 41.2, 55, 0, 49, 0], bassType: 'sawtooth', bassCutoff: 400, bassQ: 10,
         lead: [247, 0, 0, 220, 0, 0, 0, 196, 0, 247, 0, 0, 262, 0, 0, 247],
-        leadType: 'triangle', leadCutoff: 700, leadDecay: 0.55,
-        pad: [41.2, 62, 82.4], padType: 'sawtooth', padCutoff: 250, padVol: 0.06,
-        stab: [165, 196, 247], stabProb: 0.15,
+        leadType: 'sawtooth', leadCutoff: 1000, leadDecay: 0.4,
+        pad: [41.2, 62, 82.4], padType: 'sawtooth', padCutoff: 450, padVol: 0.09,
+        stab: [165, 196, 247], stabProb: 0.18,
         wild: 'ping', wildScale: [330, 392, 440, 494]
       },
       { name: 'Pressure',
-        bass: [110, 0, 110, 98, 0, 110, 0, 82.4], bassType: 'sawtooth', bassCutoff: 350, bassQ: 8,
+        bass: [110, 0, 110, 98, 0, 110, 0, 82.4], bassType: 'sawtooth', bassCutoff: 600, bassQ: 6,
         lead: [523, 0, 466, 0, 0, 523, 0, 587, 0, 523, 466, 0, 0, 392, 0, 0],
-        leadType: 'square', leadCutoff: 1000, leadDecay: 0.22,
-        pad: [110, 138.6, 165], padType: 'square', padCutoff: 400, padVol: 0.03,
-        stab: [440, 523, 660], stabProb: 0.22,
+        leadType: 'square', leadCutoff: 1500, leadDecay: 0.2,
+        pad: [110, 138.6, 165], padType: 'sawtooth', padCutoff: 600, padVol: 0.06,
+        stab: [440, 523, 660], stabProb: 0.25,
         wild: 'crunch', wildScale: [200, 300, 400, 500]
       },
       { name: 'Void',
-        bass: [65.4, 0, 65.4, 65.4, 0, 55, 65.4, 0], bassType: 'sawtooth', bassCutoff: 220, bassQ: 10,
+        bass: [65.4, 0, 65.4, 65.4, 0, 55, 65.4, 0], bassType: 'sawtooth', bassCutoff: 450, bassQ: 8,
         lead: [392, 0, 0, 349, 0, 330, 0, 0, 349, 392, 0, 440, 0, 0, 392, 0],
-        leadType: 'sine', leadCutoff: 800, leadDecay: 0.4,
-        pad: [65.4, 98, 131], padType: 'sawtooth', padCutoff: 280, padVol: 0.05,
-        stab: [262, 330, 392], stabProb: 0.17,
+        leadType: 'sawtooth', leadCutoff: 1200, leadDecay: 0.3,
+        pad: [65.4, 98, 131], padType: 'sawtooth', padCutoff: 480, padVol: 0.08,
+        stab: [262, 330, 392], stabProb: 0.2,
         wild: 'chime', wildScale: [523, 587, 659, 784]
       }
     ];
@@ -629,14 +627,14 @@
           o1.type = s.bassType; o1.frequency.value = bFreq;
           o1.detune.value = Math.sin(beat * 0.15) * 10;
           f1.type = 'lowpass'; f1.frequency.value = s.bassCutoff + t * 150; f1.Q.value = s.bassQ;
-          e1.gain.setValueAtTime(0.45, audioCtx.currentTime);
+          e1.gain.setValueAtTime(0.6, audioCtx.currentTime);
           e1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
           o1.connect(f1); f1.connect(e1); e1.connect(musicGain);
           o1.start(); o1.stop(audioCtx.currentTime + 0.24);
           // Sub bass — pure sine one octave below
           const o2 = audioCtx.createOscillator(); const e2 = audioCtx.createGain();
           o2.type = 'sine'; o2.frequency.value = bFreq / 2;
-          e2.gain.setValueAtTime(0.4, audioCtx.currentTime);
+          e2.gain.setValueAtTime(0.55, audioCtx.currentTime);
           e2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
           o2.connect(e2); e2.connect(musicGain);
           o2.start(); o2.stop(audioCtx.currentTime + 0.3);
@@ -651,7 +649,7 @@
           o.type = s.leadType; o.frequency.value = lFreq;
           o.detune.value = Math.random() * 8 - 4;
           f.type = 'lowpass'; f.frequency.value = s.leadCutoff + t * 300; f.Q.value = 2;
-          e.gain.setValueAtTime(0.07 + t * 0.03, audioCtx.currentTime);
+          e.gain.setValueAtTime(0.12 + t * 0.05, audioCtx.currentTime);
           e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.leadDecay);
           o.connect(f); f.connect(e); e.connect(musicGain);
           o.start(); o.stop(audioCtx.currentTime + s.leadDecay + 0.05);
@@ -663,8 +661,8 @@
         ko.type = 'sine';
         ko.frequency.setValueAtTime(160, audioCtx.currentTime);
         ko.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + 0.12);
-        ke.gain.setValueAtTime(0.4, audioCtx.currentTime);
-        ke.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        ke.gain.setValueAtTime(0.55, audioCtx.currentTime);
+        ke.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
         ko.connect(ke); ke.connect(musicGain);
         ko.start(); ko.stop(audioCtx.currentTime + 0.2);
         // Kick click layer
@@ -673,7 +671,7 @@
         for (let i = 0; i < kd.length; i++) kd[i] = Math.random() * 2 - 1;
         const ks = audioCtx.createBufferSource(); ks.buffer = kn;
         const kce = audioCtx.createGain();
-        kce.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        kce.gain.setValueAtTime(0.25, audioCtx.currentTime);
         kce.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.01);
         const kcf = audioCtx.createBiquadFilter();
         kcf.type = 'bandpass'; kcf.frequency.value = 4000; kcf.Q.value = 2;
@@ -687,8 +685,8 @@
             const f = audioCtx.createBiquadFilter();
             o.type = 'sawtooth'; o.frequency.value = freq;
             o.detune.value = Math.random() * 15 - 7;
-            f.type = 'lowpass'; f.frequency.value = 800 + t * 400; f.Q.value = 4;
-            e.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            f.type = 'lowpass'; f.frequency.value = 1200 + t * 600; f.Q.value = 4;
+            e.gain.setValueAtTime(0.15, audioCtx.currentTime);
             e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
             o.connect(f); f.connect(e); e.connect(musicGain);
             o.start(); o.stop(audioCtx.currentTime + 0.17);
@@ -704,7 +702,7 @@
       function tickHat() {
         if (!musicPlaying) return;
         const swing = hStep % 2 === 1 ? STEP * 0.05 : 0;
-        const accent = hStep % 4 === 0 ? 0.10 : (hStep % 2 === 0 ? 0.055 : 0.03);
+        const accent = hStep % 4 === 0 ? 0.18 : (hStep % 2 === 0 ? 0.10 : 0.06);
         const len = 0.03;
         const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
         const d = buf.getChannelData(0);
@@ -727,7 +725,7 @@
         const next = BEAT * (0.4 + Math.random() * 1.2);
         if (Math.random() < 0.3) {
           const freq = s.wildScale[Math.floor(Math.random() * s.wildScale.length)];
-          const vol = 0.06 + intensity() * 0.03;
+          const vol = 0.12 + intensity() * 0.06;
           if (s.wild === 'blip') {
             const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
             o.type = 'sine'; o.frequency.value = freq;
