@@ -524,7 +524,7 @@
       });
     }
 
-    // --- Music: 5 techno tracks, random but never same twice ---
+    // --- Music: 5 techno tracks with verse/chorus structure ---
     let musicNodes = [];
     let lastSongIndex = -1;
 
@@ -533,31 +533,41 @@
         bass: [55, 55, 73.4, 55, 82.4, 55, 73.4, 65.4],
         bassType: 'sawtooth', bassCutoff: 400, bassQ: 8,
         tempo: 250, hatTempo: 125,
-        pad: [110, 164.8, 220, 329.6], padCutoff: 600, padType: 'sawtooth'
+        pad: [110, 164.8, 220, 329.6], padCutoff: 600, padType: 'sawtooth',
+        arp: [330, 440, 523, 660, 523, 440, 330, 262], arpType: 'square',
+        chorusBassBoost: 200, chorusPadBoost: 300
       },
       { // Track 2: Driving high-energy
         bass: [82.4, 82.4, 110, 82.4, 98, 82.4, 73.4, 98],
         bassType: 'square', bassCutoff: 500, bassQ: 6,
         tempo: 200, hatTempo: 100,
-        pad: [165, 220, 330, 440], padCutoff: 500, padType: 'sawtooth'
+        pad: [165, 220, 330, 440], padCutoff: 500, padType: 'sawtooth',
+        arp: [440, 523, 660, 880, 660, 523, 440, 349], arpType: 'sawtooth',
+        chorusBassBoost: 250, chorusPadBoost: 400
       },
       { // Track 3: Deep & moody
         bass: [41.2, 41.2, 55, 49, 41.2, 55, 49, 36.7],
         bassType: 'sawtooth', bassCutoff: 300, bassQ: 10,
         tempo: 280, hatTempo: 140,
-        pad: [82.4, 123.5, 165, 247], padCutoff: 450, padType: 'triangle'
+        pad: [82.4, 123.5, 165, 247], padCutoff: 450, padType: 'triangle',
+        arp: [247, 330, 370, 494, 370, 330, 247, 196], arpType: 'triangle',
+        chorusBassBoost: 150, chorusPadBoost: 250
       },
       { // Track 4: Agitated synth
         bass: [110, 98, 82.4, 110, 130.8, 110, 98, 73.4],
         bassType: 'sawtooth', bassCutoff: 600, bassQ: 4,
         tempo: 220, hatTempo: 110,
-        pad: [220, 277, 330, 415], padCutoff: 700, padType: 'square'
+        pad: [220, 277, 330, 415], padCutoff: 700, padType: 'square',
+        arp: [523, 660, 784, 880, 784, 660, 523, 415], arpType: 'square',
+        chorusBassBoost: 300, chorusPadBoost: 350
       },
       { // Track 5: Smooth & floating
         bass: [65.4, 65.4, 82.4, 73.4, 65.4, 98, 82.4, 73.4],
         bassType: 'triangle', bassCutoff: 350, bassQ: 5,
         tempo: 300, hatTempo: 150,
-        pad: [131, 196, 262, 392], padCutoff: 550, padType: 'sine'
+        pad: [131, 196, 262, 392], padCutoff: 550, padType: 'sine',
+        arp: [392, 523, 659, 784, 659, 523, 392, 330], arpType: 'sine',
+        chorusBassBoost: 150, chorusPadBoost: 200
       }
     ];
 
@@ -573,35 +583,141 @@
       musicPlaying = true;
       const song = pickSong();
 
-      // Bass sequence
+      // Section tracking: verse (16 beats) → chorus (16 beats) → repeat
+      const sectionLength = 16; // beats per section
+      let globalStep = 0;
+
+      function isChorus() {
+        return (Math.floor(globalStep / sectionLength) % 2) === 1;
+      }
+
+      // Persistent filter nodes for sweeping
+      const bassFilter = audioCtx.createBiquadFilter();
+      bassFilter.type = 'lowpass';
+      bassFilter.frequency.value = song.bassCutoff;
+      bassFilter.Q.value = song.bassQ;
+      bassFilter.connect(musicGain);
+
+      // Pad nodes (persistent, filter sweeps on chorus)
+      const padGains = [];
+      const padFilter = audioCtx.createBiquadFilter();
+      padFilter.type = 'lowpass';
+      padFilter.frequency.value = song.padCutoff;
+      padFilter.Q.value = 2;
+      padFilter.connect(musicGain);
+
+      song.pad.forEach(f => {
+        const osc = audioCtx.createOscillator();
+        osc.type = song.padType;
+        osc.frequency.value = f;
+        osc.detune.value = Math.random() * 10 - 5;
+        const gain = audioCtx.createGain();
+        gain.gain.value = 0.06;
+        osc.connect(gain);
+        gain.connect(padFilter);
+        osc.start();
+        padGains.push(gain);
+        musicNodes.push({ stop: () => {
+          gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+          osc.stop(audioCtx.currentTime + 0.3);
+        }});
+      });
+
+      // Arp lead (only during chorus)
+      let arpStep = 0;
+      function scheduleArp() {
+        if (!musicPlaying) return;
+        if (isChorus()) {
+          const freq = song.arp[arpStep % song.arp.length];
+          const osc = audioCtx.createOscillator();
+          const env = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+          osc.type = song.arpType;
+          osc.frequency.value = freq;
+          filter.type = 'lowpass';
+          filter.frequency.value = 2000;
+          filter.Q.value = 3;
+          env.gain.setValueAtTime(0.12, audioCtx.currentTime);
+          env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + song.tempo / 1200);
+          osc.connect(filter);
+          filter.connect(env);
+          env.connect(musicGain);
+          osc.start();
+          osc.stop(audioCtx.currentTime + song.tempo / 1000);
+          arpStep++;
+        }
+        musicNodes.push(setTimeout(scheduleArp, song.tempo / 2));
+      }
+      scheduleArp();
+
+      // Kick drum (chorus only, every beat)
+      function scheduleKick() {
+        if (!musicPlaying) return;
+        if (isChorus()) {
+          const osc = audioCtx.createOscillator();
+          const env = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
+          env.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+          osc.connect(env);
+          env.connect(musicGain);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.16);
+        }
+        musicNodes.push(setTimeout(scheduleKick, song.tempo));
+      }
+      scheduleKick();
+
+      // Bass sequence (with filter sweep on section changes)
       let bassStep = 0;
+      let lastSection = -1;
       function scheduleBass() {
         if (!musicPlaying) return;
+        const chorus = isChorus();
+        const section = Math.floor(globalStep / sectionLength);
+
+        // Sweep filters on section change
+        if (section !== lastSection) {
+          lastSection = section;
+          const targetBassCutoff = chorus ? song.bassCutoff + song.chorusBassBoost : song.bassCutoff;
+          const targetPadCutoff = chorus ? song.padCutoff + song.chorusPadBoost : song.padCutoff;
+          bassFilter.frequency.setTargetAtTime(targetBassCutoff, audioCtx.currentTime, 0.5);
+          padFilter.frequency.setTargetAtTime(targetPadCutoff, audioCtx.currentTime, 0.5);
+          // Swell pad volume during chorus
+          const padVol = chorus ? 0.09 : 0.06;
+          padGains.forEach(g => g.gain.setTargetAtTime(padVol, audioCtx.currentTime, 0.5));
+        }
+
         const osc = audioCtx.createOscillator();
         const env = audioCtx.createGain();
-        const filter = audioCtx.createBiquadFilter();
         osc.type = song.bassType;
         osc.frequency.value = song.bass[bassStep % song.bass.length];
-        filter.type = 'lowpass';
-        filter.frequency.value = song.bassCutoff;
-        filter.Q.value = song.bassQ;
-        env.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        const bassVol = chorus ? 0.4 : 0.35;
+        env.gain.setValueAtTime(bassVol, audioCtx.currentTime);
         env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-        osc.connect(filter);
-        filter.connect(env);
-        env.connect(musicGain);
+        osc.connect(bassFilter);
+
+        // Bass goes through shared filter but needs its own envelope
+        const envOut = audioCtx.createGain();
+        envOut.gain.value = 1;
+        osc.connect(env);
+        env.connect(bassFilter);
         osc.start();
         osc.stop(audioCtx.currentTime + 0.2);
         bassStep++;
+        globalStep++;
         musicNodes.push(setTimeout(scheduleBass, song.tempo));
       }
       scheduleBass();
 
-      // Hi-hat pattern
+      // Hi-hat pattern (double-time during chorus)
       let hatStep = 0;
       function scheduleHat() {
         if (!musicPlaying) return;
-        const accent = hatStep % 4 === 0 ? 0.12 : 0.05;
+        const chorus = isChorus();
+        const accent = hatStep % 4 === 0 ? 0.12 : (chorus ? 0.07 : 0.05);
         const bufSize = audioCtx.sampleRate * 0.04;
         const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
         const data = buf.getChannelData(0);
@@ -620,31 +736,11 @@
         src.start();
         src.stop(audioCtx.currentTime + 0.05);
         hatStep++;
-        musicNodes.push(setTimeout(scheduleHat, song.hatTempo));
+        // Hats go double-time in chorus
+        const hatInterval = chorus ? song.hatTempo * 0.5 : song.hatTempo;
+        musicNodes.push(setTimeout(scheduleHat, hatInterval));
       }
       scheduleHat();
-
-      // Pad / atmosphere
-      song.pad.forEach(f => {
-        const osc = audioCtx.createOscillator();
-        osc.type = song.padType;
-        osc.frequency.value = f;
-        osc.detune.value = Math.random() * 10 - 5;
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = song.padCutoff;
-        filter.Q.value = 2;
-        const gain = audioCtx.createGain();
-        gain.gain.value = 0.06;
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(musicGain);
-        osc.start();
-        musicNodes.push({ stop: () => {
-          gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-          osc.stop(audioCtx.currentTime + 0.3);
-        }});
-      });
     }
 
     function stopMusic() {
