@@ -362,6 +362,7 @@
     <div id="game-over-panel">
       <h2>LEADERBOARD</h2>
       <div class="your-score"><b id="final-name">You</b> scored <b id="final-score">0</b> points!</div>
+      <div id="placement" style="font-size:13px;color:#94a3b8;margin-bottom:12px;"></div>
       <div id="leaderboard">
         <div class="lb-title">Top Scores</div>
         <div id="lb-entries"></div>
@@ -500,6 +501,27 @@
       env.connect(sfxGain);
       osc.start();
       osc.stop(audioCtx.currentTime + 1.0);
+    }
+
+    function sfxVictory() {
+      if (!audioCtx) return;
+      // Bright ascending arpeggio
+      const notes = [523, 659, 784, 1047];
+      notes.forEach((f, i) => {
+        setTimeout(() => {
+          playTone(f, 'sine', 0.3, sfxGain);
+          playTone(f * 1.5, 'sine', 0.2, sfxGain);
+        }, i * 120);
+      });
+    }
+
+    function sfxDefeat() {
+      if (!audioCtx) return;
+      // Soft descending tones
+      const notes = [330, 277, 220];
+      notes.forEach((f, i) => {
+        setTimeout(() => playTone(f, 'sine', 0.35, sfxGain), i * 180);
+      });
     }
 
     // --- Music: Tron-style techno loop ---
@@ -1479,12 +1501,21 @@
       lb = lb.slice(0, 10);
       saveLeaderboard(lb);
 
+      // Find placement
+      const place = lb.findIndex(e => e.isPlayer && e.name === playerName && e.score === pendingScore) + 1;
+      const ordinal = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : place + 'th';
+
       // Show leaderboard screen
       document.getElementById('final-name').textContent = playerName;
       document.getElementById('final-score').textContent = pendingScore;
+      document.getElementById('placement').textContent = place <= 10 ? `You placed ${ordinal} on the leaderboard` : '';
       renderLeaderboard(lb, playerName, pendingScore);
       document.getElementById('game-over-overlay').classList.add('visible');
       setTimeout(() => document.getElementById('play-again-btn').focus(), 100);
+
+      // Play placement sound
+      if (place === 1) sfxVictory();
+      else sfxDefeat();
     }
 
     // Submit name on button click
