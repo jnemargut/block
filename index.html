@@ -452,6 +452,9 @@
     let keys = {};
     let animFrameId = null;
 
+    // Death animation state
+    let deathAnim = null; // { shards, startTime, duration, killerEnemy, speedMult }
+
     // Leaderboard (stored in localStorage)
     function getLeaderboard() {
       try {
@@ -710,11 +713,11 @@
           e.vy = -Math.abs(e.vy);
         }
 
-        // Check collision with player (game over) — skip if invincible
+        // Check collision with player (death) — skip if invincible
         if (Date.now() > invincibleUntil &&
             rectsOverlap(player.x + 2, player.y + 2, player.size - 4, player.size - 4,
                          e.x + 2, e.y + 2, e.size - 4, e.size - 4)) {
-          gameOver();
+          startDeathAnim(e, speedMult);
           return;
         }
       }
@@ -827,9 +830,9 @@
         ctx.fillRect(e.x, e.y, e.size, 4);
       }
 
-      // Player square (flashes when invincible)
+      // Player square (flashes when invincible, hidden during death)
       const isInvincible = Date.now() < invincibleUntil;
-      const showPlayer = !isInvincible || Math.floor(Date.now() / 80) % 2 === 0;
+      const showPlayer = !deathAnim && (!isInvincible || Math.floor(Date.now() / 80) % 2 === 0);
       if (showPlayer) {
         if (isInvincible) {
           // Glowing shield effect during invincibility
@@ -931,6 +934,112 @@
           else ctx.fillStyle = '#ef4444';
           ctx.fillRect(46 + i * 9, ARENA - 16, 6, 10);
         }
+      }
+    }
+
+    function spawnShards(px, py, size) {
+      const shards = [];
+      const cols = 4, rows = 4;
+      const sw = size / cols, sh = size / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cx = px + c * sw + sw / 2;
+          const cy = py + r * sh + sh / 2;
+          const angle = Math.atan2(cy - (py + size / 2), cx - (px + size / 2)) + (Math.random() - 0.5) * 0.5;
+          const speed = 1.5 + Math.random() * 2.5;
+          shards.push({
+            x: cx - sw / 2, y: cy - sh / 2,
+            w: sw, h: sh,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            rot: 0,
+            rotSpeed: (Math.random() - 0.5) * 0.3,
+            alpha: 1
+          });
+        }
+      }
+      return shards;
+    }
+
+    function startDeathAnim(killerEnemy, speedMult) {
+      const shards = spawnShards(player.x, player.y, player.size);
+      deathAnim = {
+        shards,
+        startTime: performance.now(),
+        duration: 2000,
+        killerEnemy,
+        speedMult,
+        flashAlpha: 1
+      };
+      gameRunning = false;
+      deathAnimLoop();
+    }
+
+    function deathAnimLoop() {
+      const elapsed = performance.now() - deathAnim.startTime;
+      const t = Math.min(elapsed / deathAnim.duration, 1);
+
+      // Slow-mo factor: starts at 0.15x, eases to near 0
+      const slowMo = 0.15 * (1 - t * t);
+
+      // Update enemies in slow motion
+      for (const e of enemies) {
+        e.x += e.vx * deathAnim.speedMult * slowMo;
+        e.y += e.vy * deathAnim.speedMult * slowMo;
+        if (e.x <= 0) { e.x = 0; e.vx = Math.abs(e.vx); }
+        if (e.x + e.size >= ARENA) { e.x = ARENA - e.size; e.vx = -Math.abs(e.vx); }
+        if (e.y <= 0) { e.y = 0; e.vy = Math.abs(e.vy); }
+        if (e.y + e.size >= ARENA) { e.y = ARENA - e.size; e.vy = -Math.abs(e.vy); }
+      }
+
+      // Update shards
+      for (const s of deathAnim.shards) {
+        s.x += s.vx * (0.3 + slowMo * 2);
+        s.y += s.vy * (0.3 + slowMo * 2);
+        s.vy += 0.03; // tiny gravity
+        s.rot += s.rotSpeed * (0.3 + slowMo * 2);
+        s.alpha = Math.max(0, 1 - t * 1.2);
+      }
+
+      // Flash fades out
+      deathAnim.flashAlpha = Math.max(0, 1 - elapsed / 150);
+
+      // Draw scene
+      draw();
+
+      // Draw shards on top
+      for (const s of deathAnim.shards) {
+        ctx.save();
+        ctx.globalAlpha = s.alpha;
+        ctx.translate(s.x + s.w / 2, s.y + s.h / 2);
+        ctx.rotate(s.rot);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(-s.w / 2, -s.h / 2, s.w, s.h);
+        ctx.fillStyle = '#2563eb';
+        ctx.fillRect(-s.w / 2, s.h / 2 - 2, s.w, 2);
+        ctx.restore();
+      }
+
+      // White flash overlay
+      if (deathAnim.flashAlpha > 0) {
+        ctx.globalAlpha = deathAnim.flashAlpha * 0.6;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, ARENA, ARENA);
+        ctx.globalAlpha = 1;
+      }
+
+      // Vignette / darken edges as time progresses
+      if (t > 0.3) {
+        const darkAlpha = (t - 0.3) * 0.6;
+        ctx.fillStyle = `rgba(0,0,0,${darkAlpha})`;
+        ctx.fillRect(0, 0, ARENA, ARENA);
+      }
+
+      if (t < 1) {
+        animFrameId = requestAnimationFrame(deathAnimLoop);
+      } else {
+        deathAnim = null;
+        gameOver();
       }
     }
 
