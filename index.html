@@ -1019,7 +1019,7 @@
     function spawnWallBounce(side, pos, speed) {
       sfxWallBounce(speed);
       spawnImpactBurst(side, pos);
-      borderGlows[side] = Math.min(1, borderGlows[side] + 0.5 + speed * 0.12);
+      borderGlows[side] = Math.min(1, borderGlows[side] + 0.8 + speed * 0.2);
       wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
       // Spawn small red shards that fly outward past the border
       const count = 3 + Math.floor(Math.random() * 3);
@@ -1056,7 +1056,7 @@
       }
       // Fade and apply per-side border glow
       for (const side of ['top', 'right', 'bottom', 'left']) {
-        borderGlows[side] *= 0.88;
+        borderGlows[side] *= 0.92;
         if (borderGlows[side] < 0.01) borderGlows[side] = 0;
         const g = borderGlows[side];
         // Blend from blue default to red on impact
