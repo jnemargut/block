@@ -1021,11 +1021,58 @@
     // Per-side border glow tracking
     const borderGlows = { top: 0, right: 0, bottom: 0, left: 0 };
 
+    function spawnImpactSparks(side, pos) {
+      const rect = canvas.getBoundingClientRect();
+      const wrapRect = canvasWrapper.getBoundingClientRect();
+      const scaleX = rect.width / ARENA;
+      const scaleY = rect.height / ARENA;
+      const canvasOffX = rect.left - wrapRect.left;
+      const canvasOffY = rect.top - wrapRect.top;
+      const count = 2 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        const spark = document.createElement('div');
+        spark.style.cssText = 'position:absolute;pointer-events:none;width:3px;height:3px;border-radius:50%;background:#ef4444;box-shadow:0 0 4px #ef4444;';
+        let sx, sy, dx, dy;
+        if (side === 'top') {
+          sx = canvasOffX + pos * scaleX + (Math.random() - 0.5) * 10;
+          sy = canvasOffY;
+          dx = (Math.random() - 0.5) * 30;
+          dy = -(15 + Math.random() * 25);
+        } else if (side === 'bottom') {
+          sx = canvasOffX + pos * scaleX + (Math.random() - 0.5) * 10;
+          sy = canvasOffY + rect.height;
+          dx = (Math.random() - 0.5) * 30;
+          dy = 15 + Math.random() * 25;
+        } else if (side === 'left') {
+          sx = canvasOffX;
+          sy = canvasOffY + pos * scaleY + (Math.random() - 0.5) * 10;
+          dx = -(15 + Math.random() * 25);
+          dy = (Math.random() - 0.5) * 30;
+        } else {
+          sx = canvasOffX + rect.width;
+          sy = canvasOffY + pos * scaleY + (Math.random() - 0.5) * 10;
+          dx = 15 + Math.random() * 25;
+          dy = (Math.random() - 0.5) * 30;
+        }
+        spark.style.left = sx + 'px';
+        spark.style.top = sy + 'px';
+        spark.style.transition = 'all 0.35s ease-out';
+        canvasWrapper.appendChild(spark);
+        requestAnimationFrame(() => {
+          spark.style.left = (sx + dx) + 'px';
+          spark.style.top = (sy + dy) + 'px';
+          spark.style.opacity = '0';
+        });
+        setTimeout(() => spark.remove(), 380);
+      }
+    }
+
     function spawnWallBounce(side, pos, speed) {
       sfxWallBounce(speed);
       spawnImpactBurst(side, pos);
-      borderGlows[side] = Math.min(1, borderGlows[side] + 0.8 + speed * 0.2);
-      wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
+      spawnImpactSparks(side, pos);
+      borderGlows[side] = 1; // always max flash
+      wallFlashes.push({ side, pos, alpha: Math.min(0.8, speed * 0.15) });
       // Spawn small red shards that fly outward past the border
       const count = 3 + Math.floor(Math.random() * 3);
       for (let i = 0; i < count; i++) {
