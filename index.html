@@ -318,6 +318,10 @@
     <div id="score-display">Score: <span id="score">0</span></div>
     <canvas id="game-canvas"></canvas>
     <div id="instructions">Arrow keys or touch to move</div>
+    <label id="lens-toggle" style="font-size:13px;color:#94a3b8;display:none;margin-top:4px;cursor:pointer;user-select:none;">
+      <input type="checkbox" id="lens-checkbox" checked style="margin-right:4px;cursor:pointer;" />
+      Touch preview
+    </label>
   </div>
 
   <script>
@@ -495,6 +499,19 @@
     const lensCtx = lensEl.getContext('2d');
     const LENS_SIZE = 110;
     const LENS_ZOOM = 1; // 1:1 with game canvas
+    let lensEnabled = localStorage.getItem('block_lens') !== 'off';
+    const lensCheckbox = document.getElementById('lens-checkbox');
+    lensCheckbox.checked = lensEnabled;
+    lensCheckbox.addEventListener('change', () => {
+      lensEnabled = lensCheckbox.checked;
+      localStorage.setItem('block_lens', lensEnabled ? 'on' : 'off');
+      if (!lensEnabled) lensEl.classList.remove('visible');
+    });
+    // Show toggle only on touch devices
+    window.addEventListener('touchstart', function showToggle() {
+      document.getElementById('lens-toggle').style.display = '';
+      window.removeEventListener('touchstart', showToggle);
+    }, { once: true });
 
     // Touch controls — move toward where you touch/hold
     let touchTarget = null; // {x, y} in canvas coordinates, or null
@@ -813,7 +830,7 @@
       }
 
       // Zoom lens — positioned above finger, shows where you're heading
-      if (touchTarget && touchScreen && gameRunning) {
+      if (lensEnabled && touchTarget && touchScreen && gameRunning) {
         // Position lens above the touch point
         let lensX = touchScreen.x - LENS_SIZE / 2;
         let lensY = touchScreen.y - LENS_SIZE - 30; // above finger
