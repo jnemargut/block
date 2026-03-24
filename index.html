@@ -574,13 +574,13 @@
     }
 
     window.addEventListener('touchstart', e => {
-      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay')) return;
+      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle')) return;
       e.preventDefault();
       updateTouch(e);
     }, { passive: false });
 
     window.addEventListener('touchmove', e => {
-      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay')) return;
+      if (e.target.closest('button, input, #start-overlay, #name-overlay, #game-over-overlay, #lens-toggle')) return;
       e.preventDefault();
       updateTouch(e);
     }, { passive: false });
