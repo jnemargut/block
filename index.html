@@ -1052,28 +1052,20 @@
         p.rot += 0.1;
         if (p.alpha <= 0) bounceParticles.splice(i, 1);
       }
-      // Fade and apply per-side border glow + dramatic box-shadow
+      // Fade and apply per-side border glow
       const defaultBorder = 'rgba(59,130,246,0.25)';
-      const shadows = ['0 0 20px rgba(59,130,246,0.08)', '0 4px 24px rgba(0,0,0,0.3)'];
       const bProp = s => 'border' + s.charAt(0).toUpperCase() + s.slice(1) + 'Color';
+      const bWidth = s => 'border' + s.charAt(0).toUpperCase() + s.slice(1) + 'Width';
       for (const side of ['top', 'right', 'bottom', 'left']) {
         borderGlows[side] *= 0.88;
         if (borderGlows[side] < 0.01) borderGlows[side] = 0;
         const g = borderGlows[side];
         canvas.style[bProp(side)] = g > 0
-          ? `rgba(239,68,68,${Math.min(1, g * 1.2).toFixed(2)})`
+          ? `rgba(239,68,68,${Math.min(1, g * 1.5).toFixed(2)})`
           : defaultBorder;
-        // Add directional box-shadow bloom per side
-        if (g > 0.05) {
-          const spread = Math.round(g * 25);
-          const a = (g * 0.6).toFixed(2);
-          if (side === 'top') shadows.push(`0 -${spread}px ${spread * 2}px rgba(239,68,68,${a})`);
-          else if (side === 'bottom') shadows.push(`0 ${spread}px ${spread * 2}px rgba(239,68,68,${a})`);
-          else if (side === 'left') shadows.push(`-${spread}px 0 ${spread * 2}px rgba(239,68,68,${a})`);
-          else shadows.push(`${spread}px 0 ${spread * 2}px rgba(239,68,68,${a})`);
-        }
+        // Thicken the border on impact
+        canvas.style[bWidth(side)] = g > 0.1 ? Math.round(2 + g * 3) + 'px' : '2px';
       }
-      canvas.style.boxShadow = shadows.join(', ');
     }
 
     // Leaderboard (stored in localStorage)
