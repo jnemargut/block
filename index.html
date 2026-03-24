@@ -74,6 +74,7 @@
       box-shadow: 0 0 20px rgba(59,130,246,0.08), 0 4px 24px rgba(0,0,0,0.3);
       max-width: calc(100vw - 24px);
       max-height: calc(100vw - 24px);
+      transition: border-color 0.3s;
     }
     .impact-burst {
       position: absolute;
@@ -1010,9 +1011,13 @@
       setTimeout(() => el.remove(), 350);
     }
 
+    // Per-side border glow tracking
+    const borderGlows = { top: 0, right: 0, bottom: 0, left: 0 };
+
     function spawnWallBounce(side, pos, speed) {
       sfxWallBounce(speed);
       spawnImpactBurst(side, pos);
+      borderGlows[side] = Math.min(1, borderGlows[side] + 0.4 + speed * 0.08);
       wallFlashes.push({ side, pos, alpha: Math.min(0.7, speed * 0.12) });
       // Spawn small red shards that fly outward past the border
       const count = 3 + Math.floor(Math.random() * 3);
@@ -1046,6 +1051,19 @@
         p.alpha -= 0.03;
         p.rot += 0.1;
         if (p.alpha <= 0) bounceParticles.splice(i, 1);
+      }
+      // Fade and apply per-side border glow
+      const defaultBorder = 'rgba(59,130,246,0.25)';
+      for (const side in borderGlows) {
+        borderGlows[side] *= 0.9;
+        if (borderGlows[side] < 0.01) borderGlows[side] = 0;
+      }
+      const bProp = s => 'border' + s.charAt(0).toUpperCase() + s.slice(1) + 'Color';
+      for (const side of ['top', 'right', 'bottom', 'left']) {
+        const g = borderGlows[side];
+        canvas.style[bProp(side)] = g > 0
+          ? `rgba(239,68,68,${(g * 0.7).toFixed(2)})`
+          : defaultBorder;
       }
     }
 
