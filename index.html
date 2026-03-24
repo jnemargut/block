@@ -1055,7 +1055,6 @@
       // Fade and apply per-side border glow
       const defaultBorder = 'rgba(59,130,246,0.25)';
       const bProp = s => 'border' + s.charAt(0).toUpperCase() + s.slice(1) + 'Color';
-      const bWidth = s => 'border' + s.charAt(0).toUpperCase() + s.slice(1) + 'Width';
       for (const side of ['top', 'right', 'bottom', 'left']) {
         borderGlows[side] *= 0.88;
         if (borderGlows[side] < 0.01) borderGlows[side] = 0;
@@ -1063,8 +1062,6 @@
         canvas.style[bProp(side)] = g > 0
           ? `rgba(239,68,68,${Math.min(1, g * 1.5).toFixed(2)})`
           : defaultBorder;
-        // Thicken the border on impact
-        canvas.style[bWidth(side)] = g > 0.1 ? Math.round(2 + g * 3) + 'px' : '2px';
       }
     }
 
