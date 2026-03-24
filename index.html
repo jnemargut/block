@@ -1375,7 +1375,7 @@
           launchTime = Date.now();
           setTimeout(() => {
             const inst = document.getElementById('instructions');
-            inst.style.transition = 'opacity 1s';
+            inst.style.transition = 'opacity 3s ease-out';
             inst.style.opacity = '0';
           }, 10000);
           invincibleUntil = Date.now() + 1000; // 1 second of safety
