@@ -494,7 +494,7 @@
     const lensEl = document.getElementById('zoom-lens');
     const lensCtx = lensEl.getContext('2d');
     const LENS_SIZE = 110;
-    const LENS_ZOOM = 1.6; // how much to zoom in (lower = more zoomed out)
+    const LENS_ZOOM = 1.2; // how much to zoom in (lower = more zoomed out)
 
     // Touch controls — move toward where you touch/hold
     let touchTarget = null; // {x, y} in canvas coordinates, or null
@@ -807,7 +807,7 @@
       }
 
       // Zoom lens — draw to off-canvas element, centered on touch target
-      if (touchTarget && launched) {
+      if (touchTarget && gameRunning) {
         lensEl.classList.add('visible');
 
         const half = LENS_SIZE / 2;
