@@ -1006,10 +1006,14 @@
         el.style.left = (canvasOffX + rect.width + 6) + 'px';
         el.style.top = (canvasOffY + pos * scaleY) + 'px';
       }
+      // Slight random stretch so they're not perfect circles
+      const sx = 0.9 + Math.random() * 0.3;
+      const sy = 0.9 + Math.random() * 0.3;
+      el.style.transform = `translate(-50%, -50%) scale(${sx * 0.5}, ${sy * 0.5})`;
       canvasWrapper.appendChild(el);
       requestAnimationFrame(() => {
         el.style.opacity = '0';
-        el.style.transform = 'translate(-50%, -50%) scale(3)';
+        el.style.transform = `translate(-50%, -50%) scale(${sx * 2.5}, ${sy * 2.5})`;
       });
       setTimeout(() => el.remove(), 450);
     }
@@ -1464,37 +1468,26 @@
         ctx.stroke();
       }
 
-      // Wall bounce glow effects
+      // Wall bounce glow effects — radial splashes at impact point
       for (const f of wallFlashes) {
         ctx.save();
         ctx.globalAlpha = f.alpha;
-        let grad;
-        const glowSize = 30;
-        if (f.side === 'left') {
-          grad = ctx.createLinearGradient(0, 0, glowSize, 0);
-          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
-          grad.addColorStop(1, 'rgba(239,68,68,0)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, f.pos - 40, glowSize, 80);
-        } else if (f.side === 'right') {
-          grad = ctx.createLinearGradient(ARENA, 0, ARENA - glowSize, 0);
-          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
-          grad.addColorStop(1, 'rgba(239,68,68,0)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(ARENA - glowSize, f.pos - 40, glowSize, 80);
-        } else if (f.side === 'top') {
-          grad = ctx.createLinearGradient(0, 0, 0, glowSize);
-          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
-          grad.addColorStop(1, 'rgba(239,68,68,0)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(f.pos - 40, 0, 80, glowSize);
-        } else {
-          grad = ctx.createLinearGradient(0, ARENA, 0, ARENA - glowSize);
-          grad.addColorStop(0, 'rgba(239,68,68,0.6)');
-          grad.addColorStop(1, 'rgba(239,68,68,0)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(f.pos - 40, ARENA - glowSize, 80, glowSize);
-        }
+        let cx, cy;
+        if (f.side === 'left') { cx = 0; cy = f.pos; }
+        else if (f.side === 'right') { cx = ARENA; cy = f.pos; }
+        else if (f.side === 'top') { cx = f.pos; cy = 0; }
+        else { cx = f.pos; cy = ARENA; }
+        // Randomized elliptical glow (seeded from position so it's stable per flash)
+        const rx = 25 + (f.pos * 7 % 20);
+        const ry = 35 + (f.pos * 13 % 25);
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+        grad.addColorStop(0, 'rgba(239,68,68,0.5)');
+        grad.addColorStop(0.4, 'rgba(239,68,68,0.2)');
+        grad.addColorStop(1, 'rgba(239,68,68,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
 
