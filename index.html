@@ -804,6 +804,80 @@
       musicNodes = [];
     }
 
+    // --- Ambient menu music: sparse echoing notes ---
+    let ambientNodes = [];
+    let ambientPlaying = false;
+    const ambientNotes = [220, 165, 196, 131, 220, 147, 165, 196];
+
+    function startAmbient() {
+      if (!audioCtx || ambientPlaying || !soundEnabled) return;
+      ambientPlaying = true;
+      let step = 0;
+
+      function tick() {
+        if (!ambientPlaying) return;
+        const freq = ambientNotes[step % ambientNotes.length];
+
+        // Main note — soft sine
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        const delay = audioCtx.createDelay(1.0);
+        const feedback = audioCtx.createGain();
+        const delayGain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        o.type = 'sine'; o.frequency.value = freq;
+        filter.type = 'lowpass'; filter.frequency.value = 800;
+        g.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+
+        // Echo chain
+        delay.delayTime.value = 0.4;
+        feedback.gain.value = 0.35;
+        delayGain.gain.value = 0.04;
+
+        o.connect(filter);
+        filter.connect(g);
+        g.connect(musicGain);
+
+        // Feedback delay
+        g.connect(delay);
+        delay.connect(feedback);
+        feedback.connect(delay);
+        delay.connect(delayGain);
+        delayGain.connect(musicGain);
+
+        o.start();
+        o.stop(audioCtx.currentTime + 1.6);
+
+        // Second voice — octave up, quieter, slightly delayed
+        setTimeout(() => {
+          if (!ambientPlaying || !audioCtx) return;
+          const o2 = audioCtx.createOscillator();
+          const g2 = audioCtx.createGain();
+          const f2 = audioCtx.createBiquadFilter();
+          o2.type = 'sine'; o2.frequency.value = freq * 2;
+          o2.detune.value = 5;
+          f2.type = 'lowpass'; f2.frequency.value = 600;
+          g2.gain.setValueAtTime(0.025, audioCtx.currentTime);
+          g2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+          o2.connect(f2); f2.connect(g2); g2.connect(musicGain);
+          o2.start(); o2.stop(audioCtx.currentTime + 1.1);
+        }, 200);
+
+        step++;
+        const next = 1800 + Math.random() * 1200; // 1.8-3s between notes
+        ambientNodes.push(setTimeout(tick, next));
+      }
+      tick();
+    }
+
+    function stopAmbient() {
+      ambientPlaying = false;
+      ambientNodes.forEach(n => clearTimeout(n));
+      ambientNodes = [];
+    }
+
     // Sound toggle
     const soundToggle = document.getElementById('sound-toggle');
     if (!soundEnabled) soundToggle.classList.remove('on');
@@ -814,8 +888,10 @@
       if (soundEnabled) {
         initAudio();
         if (gameRunning && launched) startMusic();
+        else startAmbient();
       } else {
         stopMusic();
+        stopAmbient();
       }
       updateAudioMute();
     });
@@ -1150,6 +1226,7 @@
     function startGame() {
       initAudio();
       stopMusic();
+      stopAmbient();
       score = 0;
       lastEnemyAtScore = 0;
       updateScoreDisplay();
@@ -1749,9 +1826,10 @@
       const ordinal = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : place + 'th';
       document.getElementById('name-placement').textContent = `You placed ${ordinal}!`;
 
-      // Play placement sound
+      // Play placement sound + start ambient
       if (place === 1) sfxVictory();
       else sfxDefeat();
+      startAmbient();
 
       // Show name entry screen
       document.getElementById('name-score').textContent = score;
