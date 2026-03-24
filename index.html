@@ -524,31 +524,49 @@
       });
     }
 
-    // --- Music: 130 BPM techno with build → drop ---
-    // ~3 second build (filter sweep, snare roll, no kick) then DROP.
-    // Clean square sub bass (not farty saw). Filtered saw pad. Fast hats.
+    // --- Music: layers build with each new block, BPM escalates ---
+    // Block 1 (launch):  kick + sub bass
+    // Block 2 (5 pts):   + hi-hats
+    // Block 3 (10 pts):  + square bass
+    // Block 4 (15 pts):  + pad opens
+    // Block 5 (20 pts):  + clap on 2&4
+    // Block 6 (25 pts):  + acid line
+    // Block 7 (30 pts):  + ride cymbal
+    // Block 8 (35 pts):  + distorted lead
+    // Block 9 (40 pts):  + noise riser
+    // Block 10 (45 pts): + everything maxed
+    // BPM: 126 → +6 per level
     let musicNodes = [];
     let lastSongIndex = -1;
-    let currentBPM = 130;
+    let musicLevel = 1; // 1-10, increases with each new block
+    let currentBPM = 126;
     function getBeat() { return 60000 / currentBPM; }
     function getEighth() { return getBeat() / 2; }
-    const BUILD_BEATS = 8;
+    function getSixteenth() { return getBeat() / 4; }
 
-    function increaseBPM() {
-      currentBPM += 8; // jump 8 BPM per new block
+    function musicLevelUp() {
+      if (musicLevel < 10) {
+        musicLevel++;
+        currentBPM += 6;
+      }
     }
 
     const songs = [
       { bass: [55, 55, 73.4, 55, 82.4, 55, 73.4, 65.4], pad: [110, 164.8, 220, 329.6],
-        acid: [220, 0, 262, 220, 0, 330, 0, 262, 220, 0, 196, 0, 220, 262, 0, 220] },
+        acid: [220, 0, 262, 220, 0, 330, 0, 262, 220, 0, 196, 0, 220, 262, 0, 220],
+        lead: [330, 0, 294, 262, 0, 294, 330, 0, 392, 349, 0, 330, 0, 294, 262, 0] },
       { bass: [82.4, 82.4, 110, 82.4, 73.4, 82.4, 98, 82.4], pad: [164.8, 220, 329.6, 440],
-        acid: [330, 0, 392, 0, 440, 330, 0, 392, 330, 0, 294, 330, 0, 392, 440, 0] },
+        acid: [330, 0, 392, 0, 440, 330, 0, 392, 330, 0, 294, 330, 0, 392, 440, 0],
+        lead: [440, 0, 392, 440, 0, 523, 0, 440, 392, 0, 349, 392, 0, 440, 0, 523] },
       { bass: [55, 73.4, 55, 55, 82.4, 73.4, 55, 65.4], pad: [110, 146.8, 220, 293.7],
-        acid: [220, 262, 0, 294, 0, 220, 262, 0, 330, 0, 294, 262, 0, 220, 0, 262] },
+        acid: [220, 262, 0, 294, 0, 220, 262, 0, 330, 0, 294, 262, 0, 220, 0, 262],
+        lead: [294, 0, 262, 0, 220, 262, 294, 0, 330, 0, 294, 0, 262, 220, 0, 262] },
       { bass: [73.4, 73.4, 55, 82.4, 73.4, 55, 98, 73.4], pad: [146.8, 196, 293.7, 392],
-        acid: [294, 0, 330, 294, 0, 392, 0, 330, 0, 294, 262, 0, 294, 330, 0, 294] },
+        acid: [294, 0, 330, 294, 0, 392, 0, 330, 0, 294, 262, 0, 294, 330, 0, 294],
+        lead: [392, 0, 349, 0, 330, 349, 392, 0, 440, 0, 392, 349, 0, 330, 0, 349] },
       { bass: [55, 55, 55, 73.4, 82.4, 82.4, 65.4, 55], pad: [110, 165, 196, 330],
-        acid: [196, 0, 220, 0, 262, 196, 0, 220, 262, 0, 330, 262, 0, 220, 196, 0] },
+        acid: [196, 0, 220, 0, 262, 196, 0, 220, 262, 0, 330, 262, 0, 220, 196, 0],
+        lead: [262, 0, 330, 262, 0, 220, 262, 0, 330, 392, 0, 330, 0, 262, 220, 0] },
     ];
 
     function pickSong() {
@@ -562,168 +580,232 @@
       if (!audioCtx || musicPlaying) return;
       musicPlaying = true;
       const s = pickSong();
-      currentBPM = 130; // reset BPM each game
-      let beat = 0;
-      let dropped = false;
+      musicLevel = 1;
+      currentBPM = 126;
+      const L = () => musicLevel; // shorthand
 
-      // Pad — filtered saw chord, continuous. Starts muffled, opens on drop.
-      const padFilter = audioCtx.createBiquadFilter();
-      padFilter.type = 'lowpass'; padFilter.frequency.value = 300; padFilter.Q.value = 2;
-      padFilter.connect(musicGain);
-      const padGains = [];
-      s.pad.forEach(f => {
-        const osc = audioCtx.createOscillator();
-        osc.type = 'sawtooth'; osc.frequency.value = f;
-        osc.detune.value = Math.random() * 10 - 5;
-        const g = audioCtx.createGain(); g.gain.value = 0.06;
-        osc.connect(g); g.connect(padFilter); osc.start();
-        padGains.push(g);
-        musicNodes.push({ stop: () => {
-          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-          osc.stop(audioCtx.currentTime + 0.3);
-        }});
-      });
-
-      // Bass filter — also starts muffled
-      const bassFilter = audioCtx.createBiquadFilter();
-      bassFilter.type = 'lowpass'; bassFilter.frequency.value = 150; bassFilter.Q.value = 3;
-      bassFilter.connect(musicGain);
-
-      // === MAIN BEAT CLOCK ===
-      let bassStep = 0;
-      function tick() {
+      // === Layer 1: Kick (always on) ===
+      function tickKick() {
         if (!musicPlaying) return;
-        const building = beat < BUILD_BEATS;
-        const buildProgress = Math.min(beat / BUILD_BEATS, 1); // 0→1 during build
-
-        // --- THE DROP ---
-        if (!dropped && beat >= BUILD_BEATS) {
-          dropped = true;
-          // Snap filters open
-          bassFilter.frequency.setValueAtTime(600, audioCtx.currentTime);
-          padFilter.frequency.setValueAtTime(800, audioCtx.currentTime);
-          padGains.forEach(g => g.gain.setValueAtTime(0.08, audioCtx.currentTime));
-        }
-
-        // During build: sweep filters up
-        if (building) {
-          bassFilter.frequency.setTargetAtTime(150 + buildProgress * 300, audioCtx.currentTime, 0.1);
-          padFilter.frequency.setTargetAtTime(300 + buildProgress * 400, audioCtx.currentTime, 0.1);
-        }
-
-        // After drop: filter slowly opens more over time
-        if (dropped) {
-          const postDrop = Math.min((beat - BUILD_BEATS) / 50, 1);
-          bassFilter.frequency.setTargetAtTime(600 + postDrop * 200, audioCtx.currentTime, 0.5);
-          padFilter.frequency.setTargetAtTime(800 + postDrop * 300, audioCtx.currentTime, 0.5);
-        }
-
-        // Bass — clean square + sine sub (not farty sawtooth)
-        const bFreq = s.bass[bassStep % s.bass.length];
-        // Square bass
-        const o1 = audioCtx.createOscillator(); const e1 = audioCtx.createGain();
-        o1.type = 'square'; o1.frequency.value = bFreq;
-        e1.gain.setValueAtTime(building ? 0.15 : 0.3, audioCtx.currentTime);
-        e1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
-        o1.connect(e1); e1.connect(bassFilter);
-        o1.start(); o1.stop(audioCtx.currentTime + 0.22);
-        // Sine sub
-        const o2 = audioCtx.createOscillator(); const e2 = audioCtx.createGain();
-        o2.type = 'sine'; o2.frequency.value = bFreq;
-        e2.gain.setValueAtTime(building ? 0.1 : 0.25, audioCtx.currentTime);
-        e2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
-        o2.connect(e2); e2.connect(musicGain); // sub bypasses filter
-        o2.start(); o2.stop(audioCtx.currentTime + 0.27);
-        bassStep++;
-
-        // Kick — only after the drop
-        if (dropped) {
-          const ko = audioCtx.createOscillator(); const ke = audioCtx.createGain();
-          ko.type = 'sine';
-          ko.frequency.setValueAtTime(160, audioCtx.currentTime);
-          ko.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.1);
-          ke.gain.setValueAtTime(0.4, audioCtx.currentTime);
-          ke.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-          ko.connect(ke); ke.connect(musicGain);
-          ko.start(); ko.stop(audioCtx.currentTime + 0.2);
-        }
-
-        // Snare roll during build — gets faster as drop approaches
-        if (building && beat >= BUILD_BEATS - 4) {
-          const rollSpeed = beat >= BUILD_BEATS - 2 ? getEighth() / 2 : getEighth();
-          const rollCount = beat >= BUILD_BEATS - 2 ? 4 : 2;
-          for (let i = 0; i < rollCount; i++) {
-            setTimeout(() => {
-              if (!musicPlaying) return;
-              const len = 0.05;
-              const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
-              const d = buf.getChannelData(0);
-              for (let j = 0; j < d.length; j++) d[j] = Math.random() * 2 - 1;
-              const src = audioCtx.createBufferSource(); src.buffer = buf;
-              const e = audioCtx.createGain();
-              e.gain.setValueAtTime(0.08 + buildProgress * 0.08, audioCtx.currentTime);
-              e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
-              const bp = audioCtx.createBiquadFilter();
-              bp.type = 'bandpass'; bp.frequency.value = 3000; bp.Q.value = 1;
-              src.connect(bp); bp.connect(e); e.connect(musicGain);
-              src.start(); src.stop(audioCtx.currentTime + len + 0.01);
-            }, i * rollSpeed);
-          }
-        }
-
-        beat++;
-        musicNodes.push(setTimeout(tick, getBeat()));
+        const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(160, audioCtx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(28, audioCtx.currentTime + 0.1);
+        e.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        o.connect(e); e.connect(musicGain);
+        o.start(); o.stop(audioCtx.currentTime + 0.2);
+        musicNodes.push(setTimeout(tickKick, getBeat()));
       }
 
-      // Hi-hat — 8th notes, always on but quieter during build
-      let hatStep = 0;
+      // === Layer 1: Sub bass (always on) ===
+      let bStep = 0;
+      function tickSub() {
+        if (!musicPlaying) return;
+        const freq = s.bass[bStep % s.bass.length];
+        if (freq > 0) {
+          const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          e.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+          o.connect(e); e.connect(musicGain);
+          o.start(); o.stop(audioCtx.currentTime + 0.27);
+        }
+        bStep++;
+        musicNodes.push(setTimeout(tickSub, getBeat()));
+      }
+
+      // === Layer 2: Hi-hats (level >= 2) ===
+      let hStep = 0;
       function tickHat() {
         if (!musicPlaying) return;
-        const building = beat < BUILD_BEATS;
-        const base = hatStep % 4 === 0 ? 0.12 : 0.05;
-        const vol = building ? base * 0.6 : base;
-        const len = 0.04;
-        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-        const src = audioCtx.createBufferSource(); src.buffer = buf;
-        const e = audioCtx.createGain();
-        e.gain.setValueAtTime(vol, audioCtx.currentTime);
-        e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
-        const hp = audioCtx.createBiquadFilter();
-        hp.type = 'highpass'; hp.frequency.value = 8000;
-        src.connect(hp); hp.connect(e); e.connect(musicGain);
-        src.start(); src.stop(audioCtx.currentTime + len + 0.01);
-        hatStep++;
+        if (L() >= 2) {
+          const accent = hStep % 4 === 0 ? 0.12 : 0.05;
+          const len = 0.04;
+          const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+          const src = audioCtx.createBufferSource(); src.buffer = buf;
+          const e = audioCtx.createGain();
+          e.gain.setValueAtTime(accent, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+          const hp = audioCtx.createBiquadFilter();
+          hp.type = 'highpass'; hp.frequency.value = 8000;
+          src.connect(hp); hp.connect(e); e.connect(musicGain);
+          src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+        }
+        hStep++;
         musicNodes.push(setTimeout(tickHat, getEighth()));
       }
 
-      // Acid synth — squelchy saw through resonant filter, 8th notes after drop
+      // === Layer 3: Square bass (level >= 3) ===
+      let sqStep = 0;
+      const bassFilter = audioCtx.createBiquadFilter();
+      bassFilter.type = 'lowpass'; bassFilter.frequency.value = 500; bassFilter.Q.value = 4;
+      bassFilter.connect(musicGain);
+      function tickSquareBass() {
+        if (!musicPlaying) return;
+        if (L() >= 3) {
+          const freq = s.bass[sqStep % s.bass.length];
+          if (freq > 0) {
+            const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+            o.type = 'square'; o.frequency.value = freq;
+            bassFilter.frequency.setTargetAtTime(500 + L() * 50, audioCtx.currentTime, 0.2);
+            e.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+            o.connect(e); e.connect(bassFilter);
+            o.start(); o.stop(audioCtx.currentTime + 0.2);
+          }
+          sqStep++;
+        }
+        musicNodes.push(setTimeout(tickSquareBass, getBeat()));
+      }
+
+      // === Layer 4: Pad (level >= 4) ===
+      const padFilter = audioCtx.createBiquadFilter();
+      padFilter.type = 'lowpass'; padFilter.frequency.value = 200; padFilter.Q.value = 2;
+      padFilter.connect(musicGain);
+      s.pad.forEach(f => {
+        const o = audioCtx.createOscillator();
+        o.type = 'sawtooth'; o.frequency.value = f;
+        o.detune.value = Math.random() * 10 - 5;
+        const g = audioCtx.createGain(); g.gain.value = 0.06;
+        o.connect(g); g.connect(padFilter); o.start();
+        musicNodes.push({ stop: () => {
+          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+          o.stop(audioCtx.currentTime + 0.3);
+        }});
+      });
+      // Pad filter controlled by tick
+      function updatePad() {
+        if (!musicPlaying) return;
+        padFilter.frequency.setTargetAtTime(L() >= 4 ? 400 + L() * 80 : 200, audioCtx.currentTime, 0.3);
+        musicNodes.push(setTimeout(updatePad, getBeat() * 4));
+      }
+
+      // === Layer 5: Clap on 2 & 4 (level >= 5) ===
+      let clapBeat = 0;
+      function tickClap() {
+        if (!musicPlaying) return;
+        if (L() >= 5 && clapBeat % 2 === 1) {
+          const len = 0.06;
+          const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+          const src = audioCtx.createBufferSource(); src.buffer = buf;
+          const e = audioCtx.createGain();
+          e.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = 2500; bp.Q.value = 1.5;
+          src.connect(bp); bp.connect(e); e.connect(musicGain);
+          src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+        }
+        clapBeat++;
+        musicNodes.push(setTimeout(tickClap, getBeat()));
+      }
+
+      // === Layer 6: Acid line (level >= 6) ===
       let acidStep = 0;
       function tickAcid() {
         if (!musicPlaying) return;
-        if (dropped) {
+        if (L() >= 6) {
           const freq = s.acid[acidStep % s.acid.length];
           if (freq > 0) {
             const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
             const f = audioCtx.createBiquadFilter();
             o.type = 'sawtooth'; o.frequency.value = freq;
-            // Squelchy resonant filter that sweeps down per note
             f.type = 'lowpass'; f.Q.value = 12;
-            f.frequency.setValueAtTime(2000 + Math.random() * 1000, audioCtx.currentTime);
+            f.frequency.setValueAtTime(1800 + Math.random() * 1200, audioCtx.currentTime);
             f.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.12);
-            e.gain.setValueAtTime(0.13, audioCtx.currentTime);
-            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.14);
+            e.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.13);
             o.connect(f); f.connect(e); e.connect(musicGain);
-            o.start(); o.stop(audioCtx.currentTime + 0.16);
+            o.start(); o.stop(audioCtx.currentTime + 0.15);
           }
           acidStep++;
         }
         musicNodes.push(setTimeout(tickAcid, getEighth()));
       }
 
-      // Start clocks
-      tick(); tickHat(); tickAcid();
+      // === Layer 7: Ride cymbal (level >= 7) ===
+      let rideStep = 0;
+      function tickRide() {
+        if (!musicPlaying) return;
+        if (L() >= 7 && rideStep % 2 === 0) {
+          const len = 0.08;
+          const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+          const src = audioCtx.createBufferSource(); src.buffer = buf;
+          const e = audioCtx.createGain();
+          e.gain.setValueAtTime(0.06, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.07);
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = 6000; bp.Q.value = 3;
+          src.connect(bp); bp.connect(e); e.connect(musicGain);
+          src.start(); src.stop(audioCtx.currentTime + len + 0.01);
+        }
+        rideStep++;
+        musicNodes.push(setTimeout(tickRide, getEighth()));
+      }
+
+      // === Layer 8: Distorted lead (level >= 8) ===
+      let leadStep = 0;
+      function tickLead() {
+        if (!musicPlaying) return;
+        if (L() >= 8) {
+          const freq = s.lead[leadStep % s.lead.length];
+          if (freq > 0) {
+            const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            // Detuned saw pair for thickness
+            o.type = 'sawtooth'; o.frequency.value = freq;
+            const o2 = audioCtx.createOscillator();
+            o2.type = 'sawtooth'; o2.frequency.value = freq; o2.detune.value = 15;
+            f.type = 'lowpass'; f.frequency.value = 1200 + L() * 100; f.Q.value = 3;
+            e.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+            o.connect(f); o2.connect(f); f.connect(e); e.connect(musicGain);
+            o.start(); o2.start();
+            o.stop(audioCtx.currentTime + 0.22); o2.stop(audioCtx.currentTime + 0.22);
+          }
+          leadStep++;
+        }
+        musicNodes.push(setTimeout(tickLead, getBeat()));
+      }
+
+      // === Layer 9: Noise riser (level >= 9) — continuous rising filtered noise ===
+      function startRiser() {
+        const bufLen = 4;
+        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * bufLen, audioCtx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src = audioCtx.createBufferSource(); src.buffer = buf; src.loop = true;
+        const e = audioCtx.createGain(); e.gain.value = 0.04;
+        const f = audioCtx.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = 1000; f.Q.value = 5;
+        // Slowly sweep up
+        f.frequency.setValueAtTime(1000, audioCtx.currentTime);
+        f.frequency.linearRampToValueAtTime(8000, audioCtx.currentTime + 30);
+        src.connect(f); f.connect(e); e.connect(musicGain);
+        src.start();
+        musicNodes.push({ stop: () => { e.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05); src.stop(audioCtx.currentTime + 0.1); }});
+      }
+      // Check periodically if we should start the riser
+      function checkRiser() {
+        if (!musicPlaying) return;
+        if (L() >= 9 && !riserStarted) { riserStarted = true; startRiser(); }
+        musicNodes.push(setTimeout(checkRiser, 500));
+      }
+      let riserStarted = false;
+
+      // === Layer 10: Everything maxed — pad fully open, extra kick punch ===
+      // Handled by existing layers reading L() >= 10
+
+      // Start all clocks
+      tickKick(); tickSub(); tickHat(); tickSquareBass(); updatePad();
+      tickClap(); tickAcid(); tickRide(); tickLead(); checkRiser();
     }
 
     function stopMusic() {
@@ -1201,7 +1283,7 @@
             lastEnemyAtScore = score;
             spawnNewEnemy();
             sfxNewEnemy();
-            if (musicPlaying) increaseBPM();
+            musicLevelUp();
             // Flash warning particles at spawn location
             const newE = pendingSpawns[pendingSpawns.length - 1];
             const spawnX = newE.x + newE.size / 2;
