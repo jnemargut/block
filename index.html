@@ -1666,12 +1666,24 @@
         s.rot += s.rotSpeed * speed;
         s.alpha = Math.max(0, 1 - t * 1.2);
 
-        // Bounce off walls with energy loss
+        // Bounce off walls with energy loss + subtle tick sound
         const bounce = 0.6;
-        if (s.x < 0) { s.x = 0; s.vx = Math.abs(s.vx) * bounce; s.rotSpeed *= -0.8; }
-        if (s.x + s.w > ARENA) { s.x = ARENA - s.w; s.vx = -Math.abs(s.vx) * bounce; s.rotSpeed *= -0.8; }
-        if (s.y < 0) { s.y = 0; s.vy = Math.abs(s.vy) * bounce; s.rotSpeed *= -0.8; }
-        if (s.y + s.h > ARENA) { s.y = ARENA - s.h; s.vy = -Math.abs(s.vy) * bounce; s.rotSpeed *= -0.8; }
+        let shardHitWall = false;
+        let hitSpeed = 0;
+        if (s.x < 0) { s.x = 0; s.vx = Math.abs(s.vx) * bounce; s.rotSpeed *= -0.8; shardHitWall = true; hitSpeed = Math.abs(s.vx); }
+        if (s.x + s.w > ARENA) { s.x = ARENA - s.w; s.vx = -Math.abs(s.vx) * bounce; s.rotSpeed *= -0.8; shardHitWall = true; hitSpeed = Math.abs(s.vx); }
+        if (s.y < 0) { s.y = 0; s.vy = Math.abs(s.vy) * bounce; s.rotSpeed *= -0.8; shardHitWall = true; hitSpeed = Math.abs(s.vy); }
+        if (s.y + s.h > ARENA) { s.y = ARENA - s.h; s.vy = -Math.abs(s.vy) * bounce; s.rotSpeed *= -0.8; shardHitWall = true; hitSpeed = Math.abs(s.vy); }
+        if (shardHitWall && audioCtx && hitSpeed > 0.3) {
+          const vol = Math.min(0.08, hitSpeed * 0.04) * s.alpha;
+          const freq = 1200 + Math.random() * 2000;
+          const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          e.gain.setValueAtTime(vol, audioCtx.currentTime);
+          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+          o.connect(e); e.connect(sfxGain);
+          o.start(); o.stop(audioCtx.currentTime + 0.05);
+        }
       }
 
       // Flash fades out
