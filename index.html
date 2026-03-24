@@ -1281,6 +1281,9 @@
       initAudio();
       stopMusic();
       startAmbient(); // ambient plays during pre-launch
+      const inst = document.getElementById('instructions');
+      inst.style.transition = 'none';
+      inst.style.opacity = '1';
       score = 0;
       lastEnemyAtScore = 0;
       updateScoreDisplay();
@@ -1370,6 +1373,11 @@
           firstEnemy.vy = (dy / dist) * firstEnemy.baseSpeed;
           launched = true;
           launchTime = Date.now();
+          setTimeout(() => {
+            const inst = document.getElementById('instructions');
+            inst.style.transition = 'opacity 1s';
+            inst.style.opacity = '0';
+          }, 10000);
           invincibleUntil = Date.now() + 1000; // 1 second of safety
           sfxLaunch();
           startMusic();
