@@ -524,10 +524,10 @@
       });
     }
 
-    // --- Music engine: 128 BPM, all layers hit immediately ---
-    // Games last ~30 seconds. No slow builds. Everything bangs from beat 1.
-    // Variation comes from filter sweeps, wildcard timing, and the arp
-    // dropping out briefly every 8 bars to create breathing room.
+    // --- Music engine: 128 BPM, heavy techno ---
+    // Games last ~30 seconds. Everything bangs from beat 1.
+    // Heavy dual-osc bass with sub, hard kick, dark pads, sparse stabs.
+    // No arpeggio. Variation from filter sweeps, wildcards, random stab timing.
     let musicNodes = [];
     let lastSongIndex = -1;
     const BPM = 128;
@@ -535,45 +535,47 @@
     const STEP = BEAT / 2;
 
     const songs = [
-      { name: 'Tape Hiss',
-        bass: [55, 0, 55, 65.4, 0, 55, 73.4, 0], bassType: 'sawtooth', bassCutoff: 400, bassQ: 10,
-        lead: [330, 0, 294, 0, 262, 0, 294, 330, 392, 349, 0, 330, 294, 0, 262, 0],
-        leadType: 'sine', leadCutoff: 1200, leadDecay: 0.45,
-        pad: [110, 165, 220], padType: 'sawtooth', padCutoff: 550, padVol: 0.05,
-        arp: [330, 392, 440, 523, 494, 440, 392, 330], arpType: 'sine',
-        wild: 'blip', wildScale: [262, 294, 330, 392, 440, 523]
+      { name: 'Warehouse',
+        // Heavy pulsing saw bass
+        bass: [55, 55, 0, 55, 55, 0, 73.4, 0], bassType: 'sawtooth', bassCutoff: 250, bassQ: 12,
+        lead: [330, 0, 0, 294, 0, 0, 262, 0, 294, 330, 0, 0, 349, 0, 330, 0],
+        leadType: 'square', leadCutoff: 900, leadDecay: 0.3,
+        pad: [55, 82.4, 110], padType: 'sawtooth', padCutoff: 300, padVol: 0.04,
+        // Stab: sparse minor chord hits
+        stab: [220, 262, 330], stabProb: 0.2,
+        wild: 'blip', wildScale: [220, 262, 294, 330, 392]
       },
-      { name: 'Neon Drive',
-        bass: [82.4, 82.4, 0, 110, 82.4, 0, 73.4, 98], bassType: 'square', bassCutoff: 500, bassQ: 6,
-        lead: [440, 0, 523, 440, 0, 349, 392, 0, 440, 523, 0, 660, 523, 0, 440, 0],
-        leadType: 'sawtooth', leadCutoff: 1700, leadDecay: 0.22,
-        pad: [165, 220, 330], padType: 'sawtooth', padCutoff: 650, padVol: 0.04,
-        arp: [660, 784, 880, 1047, 880, 784, 660, 523], arpType: 'square',
-        wild: 'stutter', wildScale: [440, 523, 660, 784]
+      { name: 'Bunker',
+        bass: [82.4, 0, 82.4, 82.4, 0, 73.4, 82.4, 0], bassType: 'square', bassCutoff: 300, bassQ: 8,
+        lead: [440, 0, 0, 392, 0, 349, 0, 0, 392, 440, 0, 0, 523, 0, 440, 0],
+        leadType: 'sawtooth', leadCutoff: 1100, leadDecay: 0.2,
+        pad: [82.4, 110, 165], padType: 'sawtooth', padCutoff: 350, padVol: 0.04,
+        stab: [330, 392, 523], stabProb: 0.18,
+        wild: 'stutter', wildScale: [330, 392, 440, 523]
       },
-      { name: 'Deep Space',
-        bass: [41.2, 0, 55, 49, 0, 41.2, 55, 0], bassType: 'sawtooth', bassCutoff: 320, bassQ: 12,
-        lead: [247, 0, 220, 0, 196, 0, 247, 294, 0, 262, 0, 247, 220, 0, 196, 0],
-        leadType: 'triangle', leadCutoff: 900, leadDecay: 0.65,
-        pad: [82.4, 124, 165], padType: 'triangle', padCutoff: 450, padVol: 0.07,
-        arp: [330, 370, 440, 494, 440, 370, 330, 247], arpType: 'sine',
-        wild: 'ping', wildScale: [494, 587, 659, 784, 880]
+      { name: 'Abyss',
+        bass: [41.2, 41.2, 0, 41.2, 55, 0, 49, 0], bassType: 'sawtooth', bassCutoff: 200, bassQ: 14,
+        lead: [247, 0, 0, 220, 0, 0, 0, 196, 0, 247, 0, 0, 262, 0, 0, 247],
+        leadType: 'triangle', leadCutoff: 700, leadDecay: 0.55,
+        pad: [41.2, 62, 82.4], padType: 'sawtooth', padCutoff: 250, padVol: 0.06,
+        stab: [165, 196, 247], stabProb: 0.15,
+        wild: 'ping', wildScale: [330, 392, 440, 494]
       },
-      { name: 'Circuit Breaker',
-        bass: [110, 110, 0, 98, 82.4, 0, 110, 131], bassType: 'sawtooth', bassCutoff: 600, bassQ: 5,
-        lead: [523, 0, 587, 523, 466, 0, 523, 587, 698, 0, 587, 523, 0, 466, 523, 0],
-        leadType: 'square', leadCutoff: 1500, leadDecay: 0.25,
-        pad: [220, 277, 330], padType: 'square', padCutoff: 700, padVol: 0.035,
-        arp: [523, 587, 698, 784, 698, 587, 523, 466], arpType: 'sawtooth',
-        wild: 'crunch', wildScale: [200, 300, 400, 500, 600]
+      { name: 'Pressure',
+        bass: [110, 0, 110, 98, 0, 110, 0, 82.4], bassType: 'sawtooth', bassCutoff: 350, bassQ: 8,
+        lead: [523, 0, 466, 0, 0, 523, 0, 587, 0, 523, 466, 0, 0, 392, 0, 0],
+        leadType: 'square', leadCutoff: 1000, leadDecay: 0.22,
+        pad: [110, 138.6, 165], padType: 'square', padCutoff: 400, padVol: 0.03,
+        stab: [440, 523, 660], stabProb: 0.22,
+        wild: 'crunch', wildScale: [200, 300, 400, 500]
       },
-      { name: 'Morning Synth',
-        bass: [65.4, 0, 82.4, 73.4, 0, 65.4, 82.4, 0], bassType: 'triangle', bassCutoff: 370, bassQ: 5,
-        lead: [523, 0, 587, 659, 0, 587, 523, 0, 494, 0, 523, 587, 659, 0, 523, 0],
-        leadType: 'sine', leadCutoff: 1000, leadDecay: 0.5,
-        pad: [131, 196, 262, 392], padType: 'sine', padCutoff: 550, padVol: 0.06,
-        arp: [523, 659, 784, 880, 784, 659, 523, 440], arpType: 'triangle',
-        wild: 'chime', wildScale: [1047, 1175, 1319, 1397, 1568]
+      { name: 'Void',
+        bass: [65.4, 0, 65.4, 65.4, 0, 55, 65.4, 0], bassType: 'sawtooth', bassCutoff: 220, bassQ: 10,
+        lead: [392, 0, 0, 349, 0, 330, 0, 0, 349, 392, 0, 440, 0, 0, 392, 0],
+        leadType: 'sine', leadCutoff: 800, leadDecay: 0.4,
+        pad: [65.4, 98, 131], padType: 'sawtooth', padCutoff: 280, padVol: 0.05,
+        stab: [262, 330, 392], stabProb: 0.17,
+        wild: 'chime', wildScale: [523, 587, 659, 784]
       }
     ];
 
@@ -593,9 +595,6 @@
       // Filter evolves over time — gets more intense as you survive
       function intensity() { return Math.min(beat / 64, 1); } // peaks at ~30s
 
-      // Arp drops out every other 8-bar phrase for breathing room
-      function arpActive() { return (Math.floor(beat / 32) % 2) === 0; }
-
       // --- Pad: on immediately, filter opens over time ---
       const padFilter = audioCtx.createBiquadFilter();
       padFilter.type = 'lowpass'; padFilter.frequency.value = s.padCutoff; padFilter.Q.value = 2;
@@ -612,54 +611,89 @@
         }});
       });
 
-      // --- Beat clock: bass + lead + kick every beat ---
+      // --- Beat clock: heavy bass + lead + kick every beat ---
       let bStep = 0, lStep = 0;
       function tick() {
         if (!musicPlaying) return;
         const t = intensity();
 
         // Evolve pad filter
-        padFilter.frequency.setTargetAtTime(s.padCutoff + t * 300, audioCtx.currentTime, 0.3);
+        padFilter.frequency.setTargetAtTime(s.padCutoff + t * 150, audioCtx.currentTime, 0.3);
 
-        // Bass
+        // Bass — dual oscillator: saw + sub sine one octave below
         const bFreq = s.bass[bStep % s.bass.length];
         if (bFreq > 0) {
-          const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
-          const f = audioCtx.createBiquadFilter();
-          o.type = s.bassType; o.frequency.value = bFreq;
-          o.detune.value = Math.sin(beat * 0.15) * 8;
-          f.type = 'lowpass'; f.frequency.value = s.bassCutoff + t * 200; f.Q.value = s.bassQ;
-          e.gain.setValueAtTime(0.35, audioCtx.currentTime);
-          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-          o.connect(f); f.connect(e); e.connect(musicGain);
-          o.start(); o.stop(audioCtx.currentTime + 0.2);
+          // Main saw bass
+          const o1 = audioCtx.createOscillator(); const e1 = audioCtx.createGain();
+          const f1 = audioCtx.createBiquadFilter();
+          o1.type = s.bassType; o1.frequency.value = bFreq;
+          o1.detune.value = Math.sin(beat * 0.15) * 10;
+          f1.type = 'lowpass'; f1.frequency.value = s.bassCutoff + t * 150; f1.Q.value = s.bassQ;
+          e1.gain.setValueAtTime(0.45, audioCtx.currentTime);
+          e1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+          o1.connect(f1); f1.connect(e1); e1.connect(musicGain);
+          o1.start(); o1.stop(audioCtx.currentTime + 0.24);
+          // Sub bass — pure sine one octave below
+          const o2 = audioCtx.createOscillator(); const e2 = audioCtx.createGain();
+          o2.type = 'sine'; o2.frequency.value = bFreq / 2;
+          e2.gain.setValueAtTime(0.4, audioCtx.currentTime);
+          e2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
+          o2.connect(e2); e2.connect(musicGain);
+          o2.start(); o2.stop(audioCtx.currentTime + 0.3);
         }
         bStep++;
 
-        // Lead
+        // Lead — darker, sits behind the bass
         const lFreq = s.lead[lStep % s.lead.length];
         if (lFreq > 0) {
           const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
           const f = audioCtx.createBiquadFilter();
           o.type = s.leadType; o.frequency.value = lFreq;
           o.detune.value = Math.random() * 8 - 4;
-          f.type = 'lowpass'; f.frequency.value = s.leadCutoff + t * 400; f.Q.value = 1.5;
-          e.gain.setValueAtTime(0.09 + t * 0.04, audioCtx.currentTime);
+          f.type = 'lowpass'; f.frequency.value = s.leadCutoff + t * 300; f.Q.value = 2;
+          e.gain.setValueAtTime(0.07 + t * 0.03, audioCtx.currentTime);
           e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + s.leadDecay);
           o.connect(f); f.connect(e); e.connect(musicGain);
           o.start(); o.stop(audioCtx.currentTime + s.leadDecay + 0.05);
         }
         lStep++;
 
-        // Kick — every beat
-        const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(150, audioCtx.currentTime);
-        o.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.1);
-        e.gain.setValueAtTime(0.25, audioCtx.currentTime);
-        e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.14);
-        o.connect(e); e.connect(musicGain);
-        o.start(); o.stop(audioCtx.currentTime + 0.15);
+        // Kick — heavy, every beat
+        const ko = audioCtx.createOscillator(); const ke = audioCtx.createGain();
+        ko.type = 'sine';
+        ko.frequency.setValueAtTime(160, audioCtx.currentTime);
+        ko.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + 0.12);
+        ke.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        ke.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        ko.connect(ke); ke.connect(musicGain);
+        ko.start(); ko.stop(audioCtx.currentTime + 0.2);
+        // Kick click layer
+        const kn = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.01, audioCtx.sampleRate);
+        const kd = kn.getChannelData(0);
+        for (let i = 0; i < kd.length; i++) kd[i] = Math.random() * 2 - 1;
+        const ks = audioCtx.createBufferSource(); ks.buffer = kn;
+        const kce = audioCtx.createGain();
+        kce.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        kce.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.01);
+        const kcf = audioCtx.createBiquadFilter();
+        kcf.type = 'bandpass'; kcf.frequency.value = 4000; kcf.Q.value = 2;
+        ks.connect(kcf); kcf.connect(kce); kce.connect(musicGain);
+        ks.start(); ks.stop(audioCtx.currentTime + 0.02);
+
+        // Stab — sparse chord hits, not every beat
+        if (Math.random() < s.stabProb) {
+          s.stab.forEach(freq => {
+            const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            o.type = 'sawtooth'; o.frequency.value = freq;
+            o.detune.value = Math.random() * 15 - 7;
+            f.type = 'lowpass'; f.frequency.value = 800 + t * 400; f.Q.value = 4;
+            e.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            o.connect(f); f.connect(e); e.connect(musicGain);
+            o.start(); o.stop(audioCtx.currentTime + 0.17);
+          });
+        }
 
         beat++;
         musicNodes.push(setTimeout(tick, BEAT));
@@ -685,25 +719,6 @@
         src.start(); src.stop(audioCtx.currentTime + len + 0.01);
         hStep++;
         musicNodes.push(setTimeout(tickHat, STEP + swing));
-      }
-
-      // --- Arp: 16th notes, drops out every other 8 bars ---
-      let aStep = 0;
-      function tickArp() {
-        if (!musicPlaying) return;
-        if (arpActive()) {
-          const freq = s.arp[aStep % s.arp.length];
-          const o = audioCtx.createOscillator(); const e = audioCtx.createGain();
-          const f = audioCtx.createBiquadFilter();
-          o.type = s.arpType; o.frequency.value = freq;
-          f.type = 'lowpass'; f.frequency.value = 1500 + intensity() * 500; f.Q.value = 3;
-          e.gain.setValueAtTime(0.07, audioCtx.currentTime);
-          e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + STEP / 1200);
-          o.connect(f); f.connect(e); e.connect(musicGain);
-          o.start(); o.stop(audioCtx.currentTime + STEP / 900);
-          aStep++;
-        }
-        musicNodes.push(setTimeout(tickArp, STEP / 2));
       }
 
       // --- Wildcard: semi-random texture ---
@@ -771,7 +786,7 @@
       }
 
       // Everything hits from beat 1
-      tick(); tickHat(); tickArp(); tickWild();
+      tick(); tickHat(); tickWild();
     }
 
     function stopMusic() {
