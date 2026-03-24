@@ -909,10 +909,19 @@
       setTimeout(() => document.getElementById('play-again-btn').focus(), 100);
     }
 
-    // Submit name on button click or Enter key
+    // Submit name on button click
     document.getElementById('name-submit-btn').addEventListener('click', submitName);
-    document.getElementById('name-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter') submitName();
+
+    // Global Enter key — triggers primary action of whichever modal is visible
+    window.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (!document.getElementById('start-overlay').classList.contains('hidden')) {
+        document.getElementById('start-btn').click();
+      } else if (document.getElementById('name-overlay').classList.contains('visible')) {
+        submitName();
+      } else if (document.getElementById('game-over-overlay').classList.contains('visible')) {
+        document.getElementById('play-again-btn').click();
+      }
     });
 
     function renderLeaderboard(lb, currentName, currentScore) {
