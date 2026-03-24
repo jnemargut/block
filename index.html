@@ -1377,6 +1377,9 @@
         if (e.x + e.size >= ARENA) { e.x = ARENA - e.size; e.vx = -Math.abs(e.vx); }
         if (e.y <= 0) { e.y = 0; e.vy = Math.abs(e.vy); }
         if (e.y + e.size >= ARENA) { e.y = ARENA - e.size; e.vy = -Math.abs(e.vy); }
+        if (!e.trail) e.trail = [];
+        e.trail.push({ x: e.x + e.size / 2, y: e.y + e.size / 2 });
+        if (e.trail.length > TRAIL_LENGTH) e.trail.shift();
       }
 
       // Update shards with wall bouncing
