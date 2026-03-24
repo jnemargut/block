@@ -887,6 +887,9 @@
       localStorage.setItem('block_sound', soundEnabled ? 'on' : 'off');
       if (soundEnabled) {
         initAudio();
+        // Play a quick "on" blip
+        playTone(660, 'sine', 0.1, sfxGain);
+        setTimeout(() => playTone(880, 'sine', 0.08, sfxGain), 60);
         if (gameRunning && launched) startMusic();
         else startAmbient();
       } else {
@@ -1172,6 +1175,16 @@
       lensToggle.classList.toggle('on', lensEnabled);
       localStorage.setItem('block_lens', lensEnabled ? 'on' : 'off');
       if (!lensEnabled) lensEl.classList.remove('visible');
+      // Toggle sound
+      if (audioCtx && soundEnabled) {
+        if (lensEnabled) {
+          playTone(600, 'sine', 0.08, sfxGain);
+          setTimeout(() => playTone(800, 'sine', 0.06, sfxGain), 50);
+        } else {
+          playTone(800, 'sine', 0.08, sfxGain);
+          setTimeout(() => playTone(600, 'sine', 0.06, sfxGain), 50);
+        }
+      }
     });
 
     // Touch controls — move toward where you touch/hold
