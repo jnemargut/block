@@ -494,7 +494,7 @@
     const lensEl = document.getElementById('zoom-lens');
     const lensCtx = lensEl.getContext('2d');
     const LENS_SIZE = 110;
-    const LENS_ZOOM = 1.2; // how much to zoom in (lower = more zoomed out)
+    const LENS_ZOOM = 1; // 1:1 with game canvas
 
     // Touch controls — move toward where you touch/hold
     let touchTarget = null; // {x, y} in canvas coordinates, or null
