@@ -7,28 +7,45 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #f0f4f8;
+      background: #0a0e1a;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       overflow: hidden;
+      position: relative;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 40%;
+      background: linear-gradient(to top, rgba(59,130,246,0.06), transparent);
+      pointer-events: none;
     }
     #game-wrapper {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 12px;
+      position: relative;
+      z-index: 1;
     }
     #score-display {
       font-size: 22px;
       font-weight: 800;
-      color: #1f2937;
-      letter-spacing: 1px;
+      color: rgba(59,130,246,0.5);
+      letter-spacing: 3px;
+      text-transform: uppercase;
     }
     #score-display span {
       color: #3b82f6;
+      text-shadow: 0 0 20px rgba(59,130,246,0.5);
     }
     #canvas-wrapper {
       position: relative;
@@ -36,10 +53,10 @@
     }
     canvas#game-canvas {
       display: block;
-      border: 3px solid #cbd5e1;
+      border: 2px solid rgba(59,130,246,0.25);
       border-radius: 8px;
-      background: #f8fafc;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      background: #080c15;
+      box-shadow: 0 0 20px rgba(59,130,246,0.08), 0 4px 24px rgba(0,0,0,0.3);
       max-width: calc(100vw - 24px);
       max-height: calc(100vw - 24px);
     }
@@ -63,8 +80,8 @@
       width: 110px;
       height: 110px;
       border-radius: 50%;
-      border: 2.5px solid #94a3b8;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      border: 2px solid rgba(59,130,246,0.4);
+      box-shadow: 0 0 12px rgba(59,130,246,0.2);
       z-index: 50;
       overflow: hidden;
       pointer-events: none;
@@ -72,11 +89,26 @@
     #zoom-lens.visible { display: block; }
     #instructions {
       font-size: 13px;
-      color: #94a3b8;
+      color: rgba(59,130,246,0.35);
       text-align: center;
+      letter-spacing: 1px;
     }
 
-    /* Touch preview switch */
+    /* Shared panel scan-line overlay */
+    .panel-scanlines {
+      position: relative;
+      overflow: hidden;
+    }
+    .panel-scanlines::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(59,130,246,0.03) 2px, rgba(59,130,246,0.03) 4px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Toggle switches */
     #lens-toggle {
       display: none;
       align-items: center;
@@ -84,7 +116,7 @@
       gap: 8px;
       margin-top: 6px;
       font-size: 13px;
-      color: #94a3b8;
+      color: rgba(59,130,246,0.35);
       cursor: pointer;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
@@ -93,9 +125,10 @@
       position: relative;
       width: 40px;
       height: 24px;
-      background: #cbd5e1;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.2);
       border-radius: 12px;
-      transition: background 0.2s;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
       flex-shrink: 0;
     }
     #lens-toggle .switch::after {
@@ -103,25 +136,30 @@
       position: absolute;
       top: 2px;
       left: 2px;
-      width: 20px;
-      height: 20px;
-      background: #fff;
+      width: 18px;
+      height: 18px;
+      background: rgba(59,130,246,0.4);
       border-radius: 50%;
-      transition: transform 0.2s;
+      transition: transform 0.2s, background 0.2s;
     }
     #lens-toggle.on .switch, #sound-toggle.on .switch {
-      background: #3b82f6;
+      background: rgba(59,130,246,0.25);
+      border-color: rgba(59,130,246,0.5);
+      box-shadow: 0 0 8px rgba(59,130,246,0.3);
     }
     #lens-toggle.on .switch::after, #sound-toggle.on .switch::after {
       transform: translateX(16px);
+      background: #3b82f6;
+      box-shadow: 0 0 6px rgba(59,130,246,0.5);
     }
     #sound-toggle .switch {
       position: relative;
       width: 40px;
       height: 24px;
-      background: #cbd5e1;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.2);
       border-radius: 12px;
-      transition: background 0.2s;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
       flex-shrink: 0;
     }
     #sound-toggle .switch::after {
@@ -129,11 +167,11 @@
       position: absolute;
       top: 2px;
       left: 2px;
-      width: 20px;
-      height: 20px;
-      background: #fff;
+      width: 18px;
+      height: 18px;
+      background: rgba(59,130,246,0.4);
       border-radius: 50%;
-      transition: transform 0.2s;
+      transition: transform 0.2s, background 0.2s;
     }
 
     /* Game Over Overlay */
@@ -141,7 +179,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.7);
       justify-content: center;
       align-items: center;
       z-index: 100;
@@ -150,11 +188,11 @@
       display: flex;
     }
     #game-over-panel {
-      background: #fff;
-      border-radius: 14px;
+      background: #080c15;
+      border-radius: 12px;
       padding: 28px 32px;
-      border: 2px solid #e2e8f0;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      border: 2px solid rgba(59,130,246,0.3);
+      box-shadow: 0 0 30px rgba(59,130,246,0.1), 0 12px 40px rgba(0,0,0,0.4);
       min-width: 260px;
       max-width: 320px;
       text-align: center;
@@ -162,16 +200,19 @@
     #game-over-panel h2 {
       font-size: 24px;
       font-weight: 800;
-      color: #1f2937;
+      color: #fff;
+      letter-spacing: 3px;
+      text-shadow: 0 0 15px rgba(59,130,246,0.4);
       margin-bottom: 4px;
     }
     #game-over-panel .your-score {
       font-size: 14px;
-      color: #64748b;
+      color: rgba(255,255,255,0.5);
       margin-bottom: 16px;
     }
     #game-over-panel .your-score b {
       color: #3b82f6;
+      text-shadow: 0 0 10px rgba(59,130,246,0.4);
     }
     #leaderboard {
       text-align: left;
@@ -179,9 +220,9 @@
     }
     #leaderboard .lb-title {
       font-size: 11px;
-      color: #94a3b8;
+      color: rgba(59,130,246,0.4);
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
       margin-bottom: 6px;
     }
     .lb-entry {
@@ -189,13 +230,15 @@
       justify-content: space-between;
       align-items: center;
       font-size: 14px;
+      color: rgba(255,255,255,0.5);
       padding: 5px 0;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid rgba(59,130,246,0.08);
     }
     .lb-entry:last-child { border-bottom: none; }
     .lb-entry.you {
       color: #3b82f6;
       font-weight: 700;
+      text-shadow: 0 0 8px rgba(59,130,246,0.3);
     }
     .lb-entry .lb-rank {
       width: 28px;
@@ -210,19 +253,22 @@
       text-align: right;
     }
     #play-again-btn {
-      background: #3b82f6;
-      color: #fff;
-      border: none;
+      background: rgba(59,130,246,0.2);
+      color: #3b82f6;
+      border: 1px solid rgba(59,130,246,0.4);
       padding: 12px 32px;
       border-radius: 8px;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
       width: 100%;
-      transition: background 0.15s;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+      box-shadow: 0 0 10px rgba(59,130,246,0.15);
     }
     #play-again-btn:hover {
-      background: #2563eb;
+      background: rgba(59,130,246,0.3);
+      box-shadow: 0 0 20px rgba(59,130,246,0.3);
     }
 
     /* Name entry screen */
@@ -230,7 +276,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.7);
       justify-content: center;
       align-items: center;
       z-index: 101;
@@ -239,11 +285,11 @@
       display: flex;
     }
     #name-panel {
-      background: #fff;
-      border-radius: 14px;
+      background: #080c15;
+      border-radius: 12px;
       padding: 28px 32px;
-      border: 2px solid #e2e8f0;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      border: 2px solid rgba(59,130,246,0.3);
+      box-shadow: 0 0 30px rgba(59,130,246,0.1), 0 12px 40px rgba(0,0,0,0.4);
       min-width: 280px;
       max-width: 320px;
       text-align: center;
@@ -251,16 +297,19 @@
     #name-panel h2 {
       font-size: 24px;
       font-weight: 800;
-      color: #1f2937;
+      color: #fff;
+      letter-spacing: 3px;
+      text-shadow: 0 0 15px rgba(59,130,246,0.4);
       margin-bottom: 4px;
     }
     #name-panel .your-score {
       font-size: 14px;
-      color: #64748b;
+      color: rgba(255,255,255,0.5);
       margin-bottom: 16px;
     }
     #name-panel .your-score b {
       color: #3b82f6;
+      text-shadow: 0 0 10px rgba(59,130,246,0.4);
     }
     #name-form {
       text-align: left;
@@ -268,31 +317,40 @@
     #name-input {
       width: 100%;
       padding: 10px 12px;
-      border: 2px solid #e2e8f0;
+      border: 2px solid rgba(59,130,246,0.2);
       border-radius: 8px;
       font-size: 15px;
       font-family: inherit;
       outline: none;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s;
       margin-bottom: 10px;
+      background: rgba(0,0,0,0.3);
+      color: #fff;
     }
     #name-input:focus {
-      border-color: #3b82f6;
+      border-color: rgba(59,130,246,0.5);
+      box-shadow: 0 0 10px rgba(59,130,246,0.2);
+    }
+    #name-input::placeholder {
+      color: rgba(59,130,246,0.3);
     }
     #name-submit-btn {
-      background: #3b82f6;
-      color: #fff;
-      border: none;
+      background: rgba(59,130,246,0.2);
+      color: #3b82f6;
+      border: 1px solid rgba(59,130,246,0.4);
       padding: 12px 32px;
       border-radius: 8px;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
       width: 100%;
-      transition: background 0.15s;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+      box-shadow: 0 0 10px rgba(59,130,246,0.15);
     }
     #name-submit-btn:hover {
-      background: #2563eb;
+      background: rgba(59,130,246,0.3);
+      box-shadow: 0 0 20px rgba(59,130,246,0.3);
     }
 
     /* Start screen */
@@ -300,58 +358,69 @@
       display: flex;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.7);
       justify-content: center;
       align-items: center;
       z-index: 100;
     }
     #start-overlay.hidden { display: none; }
     #start-panel {
-      background: #fff;
-      border-radius: 14px;
+      background: #080c15;
+      border-radius: 12px;
       padding: 32px;
-      border: 2px solid #e2e8f0;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      border: 2px solid rgba(59,130,246,0.3);
+      box-shadow: 0 0 30px rgba(59,130,246,0.1), 0 12px 40px rgba(0,0,0,0.4);
       text-align: center;
       max-width: 320px;
     }
     #start-panel h1 {
       font-size: 36px;
       font-weight: 900;
-      color: #1f2937;
+      color: #fff;
+      letter-spacing: 6px;
+      text-shadow: 0 0 25px rgba(59,130,246,0.6), 0 0 50px rgba(59,130,246,0.2);
       margin-bottom: 8px;
     }
     #start-panel p {
       font-size: 14px;
-      color: #64748b;
+      color: rgba(255,255,255,0.5);
       margin-bottom: 6px;
       line-height: 1.5;
     }
+    #start-panel p b {
+      color: rgba(255,255,255,0.8);
+    }
     #start-panel .hint {
       font-size: 12px;
-      color: #94a3b8;
+      color: rgba(59,130,246,0.35);
       margin-top: 16px;
+      letter-spacing: 1px;
     }
     #start-btn {
-      background: #3b82f6;
-      color: #fff;
-      border: none;
+      background: rgba(59,130,246,0.2);
+      color: #3b82f6;
+      border: 1px solid rgba(59,130,246,0.4);
       padding: 14px 40px;
       border-radius: 8px;
       font-size: 16px;
       font-weight: 700;
       cursor: pointer;
       margin-top: 20px;
-      transition: background 0.15s;
+      letter-spacing: 2px;
+      transition: all 0.15s;
+      box-shadow: 0 0 15px rgba(59,130,246,0.2);
     }
-    #start-btn:hover { background: #2563eb; }
+    #start-btn:hover {
+      background: rgba(59,130,246,0.3);
+      box-shadow: 0 0 25px rgba(59,130,246,0.4);
+    }
   </style>
 </head>
 <body>
 
   <!-- Start Screen -->
   <div id="start-overlay">
-    <div id="start-panel">
+    <div id="start-panel" class="panel-scanlines">
       <h1>BLOCK</h1>
       <p>Move your <b style="color:#3b82f6">blue square</b> into the <b style="color:#ef4444">red square</b> to launch it!</p>
       <p>Then <b>dodge</b> the bouncing red square and collect <b style="color:#eab308">diamonds</b> to score points.</p>
@@ -363,12 +432,12 @@
 
   <!-- Name Entry Overlay -->
   <div id="name-overlay">
-    <div id="name-panel">
+    <div id="name-panel" class="panel-scanlines">
       <h2>GAME OVER</h2>
       <div class="your-score">You scored <b id="name-score">0</b> points!</div>
-      <div id="name-placement" style="font-size:13px;color:#94a3b8;margin-bottom:8px;"></div>
+      <div id="name-placement" style="font-size:13px;color:rgba(59,130,246,0.5);margin-bottom:8px;"></div>
       <div id="name-form">
-        <label for="name-input" style="font-size:13px;color:#64748b;display:block;margin-bottom:6px">Enter your name for the leaderboard:</label>
+        <label for="name-input" style="font-size:13px;color:rgba(255,255,255,0.4);display:block;margin-bottom:6px">Enter your name for the leaderboard:</label>
         <input type="text" id="name-input" maxlength="12" placeholder="Your name..." />
         <button id="name-submit-btn">Submit</button>
       </div>
@@ -377,7 +446,7 @@
 
   <!-- Game Over Overlay -->
   <div id="game-over-overlay">
-    <div id="game-over-panel">
+    <div id="game-over-panel" class="panel-scanlines">
       <h2>LEADERBOARD</h2>
       <div class="your-score"><b id="final-name">You</b> scored <b id="final-score">0</b> points!</div>
       <div id="leaderboard">
@@ -407,7 +476,7 @@
         <span class="switch"></span>
         <span>Touch preview</span>
       </div>
-      <div id="sound-toggle" class="on" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;">
+      <div id="sound-toggle" class="on" style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(59,130,246,0.35);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;">
         <span class="switch"></span>
         <span>Sound</span>
       </div>
@@ -1410,11 +1479,11 @@
       ctx.clearRect(0, 0, ARENA, ARENA);
 
       // Arena background
-      ctx.fillStyle = '#f8fafc';
+      ctx.fillStyle = '#080c15';
       ctx.fillRect(0, 0, ARENA, ARENA);
 
       // Subtle grid
-      ctx.strokeStyle = '#f1f5f9';
+      ctx.strokeStyle = 'rgba(59,130,246,0.06)';
       ctx.lineWidth = 1;
       for (let i = 0; i <= ARENA; i += 30) {
         ctx.beginPath();
@@ -1556,7 +1625,7 @@
       // Pre-launch hint
       if (!launched && gameRunning && enemies.length > 0) {
         const firstEnemy = enemies[0];
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = 'rgba(59,130,246,0.6)';
         ctx.font = 'bold 14px system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.shadowBlur = 0;
@@ -1625,7 +1694,7 @@
         const barCount = Math.min(Math.floor(mult * 2), 12);
         ctx.font = '10px system-ui, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = 'rgba(59,130,246,0.35)';
         ctx.fillText('Speed', 8, ARENA - 8);
         for (let i = 0; i < barCount; i++) {
           const ratio = i / 12;
