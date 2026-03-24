@@ -1217,7 +1217,7 @@
         if (trail.length < 2) return;
         const half = size / 2;
         for (let i = 0; i < trail.length; i++) {
-          const alpha = (i / trail.length) * 0.3;
+          const alpha = (i / trail.length) * 0.1;
           ctx.globalAlpha = alpha;
           ctx.fillStyle = color;
           ctx.fillRect(trail[i].x - half, trail[i].y - half, size, size);
