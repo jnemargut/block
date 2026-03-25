@@ -1782,11 +1782,10 @@
           const cy = player.y + player.size / 2 + (lastImpatienceLevel >= 4 ? (Math.random() - 0.5) * 4 : 0);
           ctx.fillStyle = 'rgba(255,255,255,0.8)';
           // Eyes — angrier = smaller gap, level 4 gets red tint
-          if (lastImpatienceLevel >= 4) ctx.fillStyle = 'rgba(255,100,100,0.9)';
           ctx.fillRect(cx - 7, cy - 4, 3, 3);
           ctx.fillRect(cx + 4, cy - 4, 3, 3);
           // Mouth varies by level
-          ctx.strokeStyle = lastImpatienceLevel >= 4 ? 'rgba(255,100,100,0.9)' : 'rgba(255,255,255,0.8)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.8)';
           ctx.lineWidth = lastImpatienceLevel >= 4 ? 2 : 1.5;
           ctx.beginPath();
           if (lastImpatienceLevel === 1) {
