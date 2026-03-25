@@ -37,10 +37,14 @@
     #beat-pulse {
       position: fixed;
       inset: 0;
-      background: rgba(59,130,246,0);
       pointer-events: none;
       z-index: 0;
-      transition: background 0.08s ease-out;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.3) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0;
+      transition: opacity 0.06s ease-out;
     }
     body::after {
       content: '';
@@ -616,16 +620,16 @@
         e.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
         o.connect(e); e.connect(musicGain);
         o.start(); o.stop(audioCtx.currentTime + 0.2);
-        // Background pulse synced to beat
+        // Grid lines pulse synced to beat
         if (score >= 15) {
           const bp = document.getElementById('beat-pulse');
-          const intensity = Math.min(0.15, (score - 10) * 0.01);
-          bp.style.transition = 'background 0.06s ease-out';
-          bp.style.background = `rgba(59,130,246,${intensity})`;
+          const intensity = Math.min(1, (score - 10) * 0.06);
+          bp.style.transition = 'opacity 0.06s ease-out';
+          bp.style.opacity = intensity;
           setTimeout(() => {
             if (musicPlaying) {
-              bp.style.transition = `background ${(getBeat() * 0.4 / 1000).toFixed(2)}s ease-in`;
-              bp.style.background = 'rgba(59,130,246,0)';
+              bp.style.transition = `opacity ${(getBeat() * 0.4 / 1000).toFixed(2)}s ease-in`;
+              bp.style.opacity = '0';
             }
           }, 60);
         }
@@ -1328,7 +1332,7 @@
       initAudio();
       stopMusic();
       startAmbient(); // ambient plays during pre-launch
-      document.getElementById('beat-pulse').style.background = 'rgba(59,130,246,0)';
+      document.getElementById('beat-pulse').style.opacity = '0';
       const inst = document.getElementById('instructions');
       inst.style.transition = 'none';
       inst.style.opacity = '1';
